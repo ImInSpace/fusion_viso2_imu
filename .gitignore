@@ -1,0 +1,8 @@
+/cmake-build-debug/
+templates/*
+.orogen/*
+*~
+.*.swp
+build/*
+
+*autobuild-stamp
