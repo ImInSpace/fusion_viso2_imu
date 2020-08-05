@@ -1,24 +1,14 @@
 #ifndef FUSION_VISO2_IMU_LIBRARY_H
 #define FUSION_VISO2_IMU_LIBRARY_H
 
-#include <Eigen/Dense>
-#include <iostream>
-#include <ctime>
-#include <utility>
-#include <iomanip>
-#include <cstdlib>
-
-#ifdef _WIN32
-
-#include <Windows.h>
-
-#else
-#include <unistd.h>
-#endif
+#include <Eigen/Dense>  //Matrices
+#include <ctime>        //Time
+#include <functional>   //Functions as parameters
 
 
 using namespace std;
 using namespace Eigen;
+
 
 class Fusion {
 private:
@@ -26,6 +16,8 @@ private:
     clock_t t;          //Current time
     VectorXd x;         //Current state
     MatrixXd P;         //Current covariance
+
+    //Variables to use constant dt instead of a
     bool use_constant_dt = false;
     double constant_dt = 0;
 
@@ -63,6 +55,14 @@ public:
         use_constant_dt = true;
     }
 
+    double getDt(){
+        if (use_constant_dt)
+            return constant_dt;
+        clock_t end = clock();
+        double dt = static_cast<double>(end - t) / CLOCKS_PER_SEC;
+        t = end;
+        return dt;
+    }
 };
 
 #endif //FUSION_VISO2_IMU_LIBRARY_H

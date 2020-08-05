@@ -8,14 +8,7 @@ double Fusion::predict(const VectorXd &u, const MatrixXd &Q) {
     assert(u.rows() == N && Q.rows() == N && Q.cols() == N);
 
     //Compute dt
-    double dt = 0;
-    if (use_constant_dt) {
-        dt = constant_dt;
-    } else {
-        clock_t end = clock();
-        dt = static_cast<double>(end - t) / CLOCKS_PER_SEC;
-        t = end;
-    }
+    double dt = getDt();
 
     //Compute F matrix for constant velocity movement
     MatrixXd F(N, N);
