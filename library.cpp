@@ -23,11 +23,12 @@ double Fusion::predict(const VectorXd &u, const MatrixXd &Q) {
             Z(N / 2), I(N / 2);
 
     //Predict according to kalman equations
-    x = F * x + u;
+    x = F * x + u*dt;
     P = F * P * F.transpose() + Q*dt;
 
     return dt;
 }
+
 
 void Fusion::update(const VectorXd &z, const MatrixXd &R) {
     //Check input size

@@ -22,7 +22,7 @@ int main() {
     srand(time(NULL));
     VectorXd x(N);
     x << 10 * VectorXd::Random(N / 2), VectorXd::Random(N / 2);
-    MatrixXd Q = MatrixXd::Random(N, N)/100;
+    MatrixXd Q = MatrixXd::Random(N, N)/10;
     MatrixXd R = MatrixXd::Random(N / 2, N / 2)/10;
 
     //Make Q and R into positive semi-definite matrices
@@ -33,13 +33,15 @@ int main() {
     normal_random_variable v { Q };
     normal_random_variable w { R };
 
-
+    VectorXd u(4);
+    u<<0,0,0,-0.1;
     //Start simulation
     for (int i = 0; i < 100; i++) {
         //Simulate movement with simulated process noise and try to predict it
         x.head(N / 2) += x.tail(N / 2) * dt;
         x += v()*dt;
-        f.predict(VectorXd::Zero(4),Q);
+        x += u*dt;
+        f.predict(u,Q);
 
         //Update kalman filter with simulated measurement noise
         VectorXd z=x.head(N/2)+w();
