@@ -46,7 +46,7 @@ int main() {
         f.update(z,R);
 
         //Print information
-        file<<z.head(2).format(csv)<<","<<f.getx().head(2).format(csv)<<","<<f.getP().topLeftCorner(2,2).format(csv)<<endl;
+        file<<x.head(2).format(csv)<<","<<z.head(2).format(csv)<<","<<f.getx().head(2).format(csv)<<","<<f.getP().topLeftCorner(2,2).format(csv)<<endl;
     }
     file.close();
 }
