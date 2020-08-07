@@ -15,51 +15,25 @@ using namespace boost::numeric::odeint;
 
 
 class Fusion {
-private:
-    int N;              //State size
-    clock_t t;          //Current time
-    VectorXd x;         //Current state
-    MatrixXd P;         //Current covariance
+protected:
 
-    //Variables to use constant dt instead of a
+    /** State size **/
+    int N;
+
+    /** Current time **/
+    clock_t t;
+
+    /** Current state **/
+    VectorXd x;
+
+    /** Current covariance **/
+    MatrixXd P;
+
+    /** Variables to use constant dt instead of getting it from clock() **/
     bool use_constant_dt = false;
     double constant_dt = 0;
 
-    static MatrixXd Z(int N) { return MatrixXd::Zero(N, N); } //Zero Matrix
-    static MatrixXd I(int N) { return MatrixXd::Identity(N, N); } //Identity Matrix
-public:
-    Fusion(int N, VectorXd x, MatrixXd P) :
-            N(N), t(clock()), x(move(x)), P(move(P)) {};
-
-    explicit Fusion(int N, VectorXd x) : Fusion(N, move(x), 1000 * MatrixXd::Identity(N, N)) {};
-
-    explicit Fusion(int N) : Fusion(N, VectorXd::Zero(N)) {};
-
-    ~Fusion() = default;
-
-    double predict(const VectorXd &u, const MatrixXd &Q);
-    // Does the predict section of the kalman filter
-    // u: input
-    // Q: state transition noise
-    // returns dt: time between this and last predict
-
-    void update(const VectorXd &z, const MatrixXd &R);
-    // Does the update section of the kalman filter
-    // z: observation
-    // R: observation noise
-
-    [[nodiscard]] int getN() const { return N; }
-
-    [[nodiscard]] VectorXd getx() const { return x; }
-
-    [[nodiscard]] MatrixXd getP() const { return P; }
-
-    //Functions to set and get dt, notice how if you don't set dt, you will use the clock
-    void setConstantDt(double constantDt) {
-        constant_dt = constantDt;
-        use_constant_dt = true;
-    }
-
+    /** Returns time to be predicted in a predict step. **/
     double getDt() {
         if (use_constant_dt)
             return constant_dt;
@@ -69,17 +43,65 @@ public:
         return dt;
     }
 
-    //Functions for getting state transition and observation (they need to be functions as they could change with x and u)
+
+    /** Helper functions **/
+    static MatrixXd Z(int N) { return MatrixXd::Zero(N, N); }
+    static MatrixXd I(int N) { return MatrixXd::Identity(N, N); }
+public:
+
+    /** Constructor for Fusion
+     * \param N size of the state vector.
+     * \param x initial state of the kalman prediction. Default is zero.
+     * \param P initial covariance matrix for the kalman prediction. Default is 1000*Identity.
+     */
+    Fusion(int N, VectorXd x, MatrixXd P) :
+            N(N), t(clock()), x(move(x)), P(move(P)) {};
+
+    explicit Fusion(int N, VectorXd x) : Fusion(N, move(x), 1000 * MatrixXd::Identity(N, N)) {};
+
+    explicit Fusion(int N) : Fusion(N, VectorXd::Zero(N)) {};
+
+    ~Fusion() = default;
+
+    /** Does the predict section of the kalman filter.
+     * \param u input.
+     * \param Q state transition noise.
+     * \return dt distance of time predicted
+     */
+    double predict(const VectorXd &u, const MatrixXd &Q);
+
+    /** Does the update section of the kalman filter
+     * @param z observation
+     * @param R observation noise
+     */
+    void update(const VectorXd &z, const MatrixXd &R);
+
+    [[nodiscard]] int getN() const { return N; }
+
+    [[nodiscard]] VectorXd getx() const { return x; }
+
+    [[nodiscard]] MatrixXd getP() const { return P; }
+
+    /** Set dt (the time predicted by each predict step to a constant value. If not used, it will use the clock
+     * @param constantDt value of dt to be used.
+     */
+    void setConstantDt(double constantDt) {
+        constant_dt = constantDt;
+        use_constant_dt = true;
+    }
+
+    /** State transition function f: x'=f(x,u).
+     * Default f is x_dot=u+[x3;x4;0;0] (Constant velocity)
+     */
     function<VectorXd(VectorXd const &, VectorXd const &)> state_transition_function = [](VectorXd _x, VectorXd _u) {
-        //Default f is x_dot=u+[x3;x4;0;0] (Constant velocity)
         int _N = _x.size();
         VectorXd f = _u;
         f.head(_N / 2) += _x.tail(_N / 2);
         return f;
     };
 
+    /** Jacobian of state_transition_function **/
     function<MatrixXd(VectorXd const &, VectorXd const &)> state_transition_jacobian = [](VectorXd _x, VectorXd _u) {
-        //Jacobian of above state transition function
         int _N = _x.size();
         MatrixXd F(_N, _N);
         F << Z(_N / 2), I(_N / 2),
@@ -87,13 +109,16 @@ public:
         return F;
     };
 
+    /** observation function h: z=h(x).
+     * Default is to only observe first half of x
+     */
     function<VectorXd(VectorXd)> observation_function = [](VectorXd _x) {
-        //Only observe position, not velocity
         int _N = _x.size();
         VectorXd h = _x.head(_N/2);
         return h;
     };
 
+    /** Jacobian of the observation function **/
     function<MatrixXd(VectorXd const &)> observation_jacobian = [](VectorXd _x) {
         //Jacobian of above observation function
         int _N = _x.size();
@@ -102,7 +127,7 @@ public:
         return H;
     };
 
-    //Things needed for integration
+    /** Things needed for integration **/
     typedef MatrixXd state_type;
     runge_kutta_dopri5<state_type, double, state_type, double, vector_space_algebra> stepper;
     struct ode {
