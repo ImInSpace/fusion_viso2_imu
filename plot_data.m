@@ -1,5 +1,5 @@
 close all
-system('cmake-build-debug\test_fusion_viso2_imu.exe');
+system('cmake-build-debug\test_fusion_viso2_imu.exe 1');
 X=csvread("data.csv");
 figure()
 hold on

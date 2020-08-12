@@ -3,8 +3,10 @@
 #include "multivar_noise.h"
 #include <fstream>
 #include <cmath>
+#include <cstdlib> // for strtol()
 
 using namespace std;
+
 
 MatrixXd RTBP_state_transition_jacobian(const VectorXd &x, const VectorXd &u) {
     double mu = pow(10, -2);
@@ -43,30 +45,62 @@ VectorXd RTBP_state_transition_function(const VectorXd &x, const VectorXd &u) {
     return f;
 };
 
-int main() {
+int main(int argc, char *argv[]) {
+    int testCaseIndex = 1;
+    if (argc >= 2) {
+        testCaseIndex = strtol(argv[1], nullptr, 10);
+    }
     //Setup output format and file
     IOFormat singleLine(StreamPrecision, DontAlignCols, ",\t", ";\t", "", "", "[", "]");
     IOFormat csv(FullPrecision, DontAlignCols, ",", ",", "", "", "", "");
     ofstream file;
     file.open("data.csv", ios::trunc);
 
-    //Initialize kalman filter
-    int N = 4;
-    double dt = 0.03;
-//    double T = 1;
-    double T = 6.2296051135204102;
-    Fusion f = Fusion(N);
-    f.setConstantDt(dt);
-    f.state_transition_function = RTBP_state_transition_function;
-    f.state_transition_jacobian = RTBP_state_transition_jacobian;
-
-    //Randomize x, Q and R
+    //Setup random
     srand(time(NULL));
-    VectorXd x(N);
-//    x << 10 * VectorXd::Random(N / 2), VectorXd::Random(N / 2)*10;
-    x << 1.033366313746765, 0, 0, -.05849376854515592;
-    MatrixXd Q = MatrixXd::Random(N, N) / 1000;
-    MatrixXd R = MatrixXd::Random(N / 2, N / 2) / 1000;
+
+
+    int N;
+    double dt;
+    double T;
+    Fusion f(0);
+    VectorXd x;
+    VectorXd u;
+    MatrixXd Q;
+    MatrixXd R;
+    switch (testCaseIndex) {
+        case 1: //constant_movement
+            N = 4;
+            dt = 0.03;
+            T = 1.0;
+            f = Fusion(N);
+            f.setConstantDt(dt);
+            x = 10 * VectorXd::Random(4);
+            Q = MatrixXd::Random(4, 4) / 10;
+            R = MatrixXd::Random(2, 2) / 10;
+            u=VectorXd(4);
+            u << 0, 0, 0, -0.1;
+            break;
+        case 2: //RTBP
+            N = 4;
+            dt = 0.03;
+            T = 6.2296051135204102;
+            f = Fusion(N);
+            f.setConstantDt(dt);
+            f.state_transition_function = RTBP_state_transition_function;
+            f.state_transition_jacobian = RTBP_state_transition_jacobian;
+
+            x = VectorXd(4);
+            x << 1.033366313746765, 0, 0, -.05849376854515592;
+            Q = MatrixXd::Random(4, 4) / 1000;
+            R = MatrixXd::Random(2, 2) / 1000;
+            u=VectorXd(4);
+            u << 0, 0, 0, 0;
+            break;
+        default:
+            exit(1);
+    }
+
 
     //Make Q and R into positive semi-definite matrices
     Q = Q.transpose() * Q;
@@ -76,10 +110,7 @@ int main() {
     normal_random_variable v{Q};
     normal_random_variable w{R};
 
-    VectorXd u(4);
-    u << 0, 0, 0, 0;
     //Start simulation
-
     bool isnanprinted = false;
     for (int i = 0; i < (int) T / dt; i++) {
         //Simulate movement with simulated process noise and try to predict it
@@ -87,7 +118,7 @@ int main() {
         f.predict(u, Q);
 
         //Update kalman filter with simulated measurement noise
-        VectorXd z = x.head(N / 2) + w();
+        VectorXd z = f.observation_function(x) + w();
         f.update(z, R);
 
         //Print information
