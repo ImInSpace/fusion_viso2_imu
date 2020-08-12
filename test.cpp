@@ -45,8 +45,43 @@ VectorXd RTBP_state_transition_function(const VectorXd &x, const VectorXd &u) {
     return f;
 };
 
+VectorXd vehicle_state_transition_function(const VectorXd &x, const VectorXd &u) {
+    double m = 1292.2;
+    double a = 1.006;
+    double I = 2380.7;
+
+    //Construct F
+    VectorXd f(6);
+    f << -x(4) * sin(x(2)) + x(5) * cos(x(2)),
+            x(4) * cos(x(2)) + x(5) * sin(x(2)),
+            x(3),
+            (a * u(0) * u(2)) / I,
+            (u(0) * u(2)) / m - x(3) * x(5),
+            (u(0) + u(1)) / m - x(3) * x(5);
+
+    return f;
+};
+
+MatrixXd vehicle_state_transition_jacobian(const VectorXd &x, const VectorXd &u) {
+    //Construct J
+    MatrixXd J = MatrixXd::Zero(6, 6);
+    J(0, 2) = -x(4) * cos(x(2)) - x(5) * sin(x(2));
+    J(0, 4) = -sin(x(2));
+    J(0, 5) = cos(x(2));
+    J(1, 2) = x(5) * cos(x(2)) - x(4) * sin(x(2));
+    J(1, 4) = cos(x(2));
+    J(1, 5) = sin(x(2));
+    J(2, 3) = 1;
+    J(4, 3) = -x(5);
+    J(4, 5) = -x(3);
+    J(5, 3) = -x(5);
+    J(5, 5) = -x(3);
+
+    return J;
+};
+
 int main(int argc, char *argv[]) {
-    int testCaseIndex = 1;
+    int testCaseIndex = 3;
     if (argc >= 2) {
         testCaseIndex = strtol(argv[1], nullptr, 10);
     }
@@ -75,10 +110,10 @@ int main(int argc, char *argv[]) {
             T = 1.0;
             f = Fusion(N);
             f.setConstantDt(dt);
-            x = 10 * VectorXd::Random(4);
-            Q = MatrixXd::Random(4, 4) / 10;
-            R = MatrixXd::Random(2, 2) / 10;
-            u=VectorXd(4);
+            x = 10 * VectorXd::Random(N);
+            Q = MatrixXd::Random(N, N) / 10;
+            R = MatrixXd::Random(N / 2, N / 2) / 10;
+            u = VectorXd(N);
             u << 0, 0, 0, -0.1;
             break;
         case 2: //RTBP
@@ -89,13 +124,26 @@ int main(int argc, char *argv[]) {
             f.setConstantDt(dt);
             f.state_transition_function = RTBP_state_transition_function;
             f.state_transition_jacobian = RTBP_state_transition_jacobian;
-
-            x = VectorXd(4);
+            x = VectorXd(N);
             x << 1.033366313746765, 0, 0, -.05849376854515592;
-            Q = MatrixXd::Random(4, 4) / 1000;
-            R = MatrixXd::Random(2, 2) / 1000;
-            u=VectorXd(4);
+            Q = MatrixXd::Random(N, N) / 1000;
+            R = MatrixXd::Random(N / 2, N / 2) / 1000;
+            u = VectorXd(N);
             u << 0, 0, 0, 0;
+            break;
+        case 3: //Vehicle dynamics
+            N = 6;
+            dt = 0.003;
+            T = 4;
+            f = Fusion(N);
+            f.setConstantDt(dt);
+            f.state_transition_function = vehicle_state_transition_function;
+            f.state_transition_jacobian = vehicle_state_transition_jacobian;
+            x = VectorXd::Zero(N);
+            Q = MatrixXd::Random(N, N) / 50;
+            R = MatrixXd::Random(N / 2, N / 2) / 100;
+            u = VectorXd(3);
+            u << 2500, 0, 2; //Pf, Pr, d
             break;
         default:
             exit(1);
