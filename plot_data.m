@@ -1,11 +1,18 @@
 close all
 system('cmake-build-debug\test_fusion_viso2_imu.exe 1');
 X=csvread("data.csv");
+tx=X(:,1); ty=X(:,2);
+ox=X(:,3); oy=X(:,4);
+kx=X(:,5); ky=X(:,6);
 figure()
 hold on
-scatter(X(1,1),X(1,2),30,'r');
-plot(X(:,1),X(:,2),'r')
-plot(X(:,3),X(:,4),'g')
-plot(X(:,5),X(:,6),'b')
+scatter(tx(1),ty(1),30,'r');
+plot(tx,ty,'r')
+plot(ox,oy,'g')
+plot(kx,ky,'b')
 axis equal
 legend start ground\_truth observations kalman
+
+Qo=cov(ox-tx,oy-ty);
+Qk=cov(kx-tx,ky-ty);
+disp(det(Qo)/det(Qk));
