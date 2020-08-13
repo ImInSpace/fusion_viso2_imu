@@ -8,10 +8,10 @@ syms Vn         %longitudinal velocity
 X=[x;y;th;th_dot;Ve;Vn];
 
 %% Input declaration
-syms Pf          %Force to front tyres
+Pf = 0;          %Force to front tyres
 syms Pr          %Force to rear tyres
 syms d           %Steering angle
-U=[Pf;Pr;d];
+U=[Pr;d];
 
 %% Parameter declaration
 %m=1292.2;       %Vehicle mass
@@ -39,8 +39,8 @@ if ~ignore_lateral_force
     Fef=mu*Fzf*(asf-(asf*abs(asf))/3+asf^3/27)*sqrt(1-Pf^2/(mu^2*Fzf^2)+Pf^2/c^2); %Lateral force on front tyre
     Fer=mu*Fzr*(asr-(asr*abs(asr))/3+asr^3/27)*sqrt(1-Pr^2/(mu^2*Fzr^2)+Pr^2/c^2); %Lateral force on rear tyre
 else
-    Fef=0;
-    Fer=0;
+    Fef=Pr*d/(1+d);
+    Fer=-Pr*d/(1+d);
 end
 
 %% ODE definition
@@ -62,10 +62,27 @@ F=subs(F,X,x(0:length(X)-1).');
 F=subs(F,U,u(0:length(U)-1).');
 J=subs(J,X,x(0:length(X)-1).');
 J=subs(J,U,u(0:length(U)-1).');
+fprintf("f << ");
+for i=1:6
+    Fi=ccode(F(i));
+    Fi=regexprep(Fi,'  t0 = ','');
+    Fi=regexprep(Fi,';','');
+    Fi=regexprep(Fi,'.0)',')');
+    if(i==6)
+        fprintf('%s;\n\n',Fi)
+    else
+        fprintf('%s,\n',Fi)
+    end
+end
+
 for i=1:6
     for j=1:6
         if J(i,j)~=0
-            fprintf('J(%i,%i)=%s;\n',i-1,j-1,J(i,j))
+            Jij=ccode(J(i,j));
+            Jij=regexprep(Jij,'  t0 = ','');
+            Jij=regexprep(Jij,';','');
+            Jij=regexprep(Jij,'.0)',')');
+            fprintf('J(%i,%i)=%s;\n',i-1,j-1,Jij)
         end
     end
 end

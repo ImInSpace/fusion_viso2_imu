@@ -49,16 +49,17 @@ VectorXd RTBP_state_transition_function(const VectorXd &x, const VectorXd &u) {
 VectorXd vehicle_state_transition_function(const VectorXd &x, const VectorXd &u) {
     double m = 1292.2;
     double a = 1.006;
+    double b = 1.534;
     double I = 2380.7;
 
     //Construct F
     VectorXd f(6);
-    f << -x(4) * sin(x(2)) + x(5) * cos(x(2)),
+    f << x(5) * cos(x(2)) - x(4) * sin(x(2)),
             x(4) * cos(x(2)) + x(5) * sin(x(2)),
             x(3),
-            (a * u(0) * u(2)) / I,
-            (u(0) * u(2)) / m - x(3) * x(5),
-            (u(0) + u(1)) / m - x(3) * x(5);
+            (b * u(0) * u(1) * 2) / (I * (u(1) + 1)),
+            -x(3) * x(5),
+            -x(3) * x(5) + (u(0) - (u(0) * pow(u(1), 2)) / (u(1) + 1)) / m;
 
     return f;
 };
@@ -156,10 +157,10 @@ int main(int argc, char *argv[]) {
             f.state_transition_function = vehicle_state_transition_function;
             f.state_transition_jacobian = vehicle_state_transition_jacobian;
             x = VectorXd::Zero(N);
-            Q = MatrixXd::Random(N, N) / 50;
-            R = MatrixXd::Random(N / 2, N / 2) / 100;
-            u = VectorXd(3);
-            u << 2500, 0, 2; //Pf, Pr, d
+            Q = MatrixXd::Random(N, N) / 5;
+            R = MatrixXd::Random(N / 2, N / 2) / 10;
+            u = VectorXd(2);
+            u << 5000, 5 * 3.14 / 180.0; //Pr, d
             break;
         default:
             exit(1);
@@ -178,6 +179,9 @@ int main(int argc, char *argv[]) {
     bool isnanprinted = false;
     for (int i = 0; i < (int) T / dt; i++) {
         //Simulate movement with simulated process noise and try to predict it
+        if (testCaseIndex == 3 && i * dt >= T / 4) {
+            u(1) = -abs(u(1));
+        }
         integrate_const(stepper, ode(&f, u, v), x, 0.0, dt, dt / 100);
         f.predict(u, Q);
 
