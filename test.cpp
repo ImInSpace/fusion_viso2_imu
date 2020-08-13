@@ -4,6 +4,7 @@
 #include <fstream>
 #include <cmath>
 #include <cstdlib> // for strtol()
+#include <utility>
 
 using namespace std;
 
@@ -80,6 +81,21 @@ MatrixXd vehicle_state_transition_jacobian(const VectorXd &x, const VectorXd &u)
     return J;
 };
 
+typedef VectorXd state_type;
+runge_kutta_dopri5<state_type, double, state_type, double, vector_space_algebra> stepper;
+struct ode {
+    Fusion *f;
+    VectorXd u;
+    normal_random_variable v;
+
+    ode(Fusion *f, VectorXd u, normal_random_variable v) : f(f), u(move(u)), v(move(v)) {}
+
+    void operator()(state_type const &x, state_type &dxdt, double t) const {
+        dxdt = f->state_transition_function(x, u)+v();
+    }
+};
+
+
 int main(int argc, char *argv[]) {
     int testCaseIndex = 3;
     if (argc >= 2) {
@@ -133,7 +149,7 @@ int main(int argc, char *argv[]) {
             break;
         case 3: //Vehicle dynamics
             N = 6;
-            dt = 0.003;
+            dt = 0.03;
             T = 4;
             f = Fusion(N);
             f.setConstantDt(dt);
@@ -162,7 +178,7 @@ int main(int argc, char *argv[]) {
     bool isnanprinted = false;
     for (int i = 0; i < (int) T / dt; i++) {
         //Simulate movement with simulated process noise and try to predict it
-        x += f.state_transition_function(x, u) * dt;
+        integrate_const(stepper, ode(&f, u, v), x, 0.0, dt, dt / 100);
         f.predict(u, Q);
 
         //Update kalman filter with simulated measurement noise
