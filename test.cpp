@@ -47,43 +47,55 @@ VectorXd RTBP_state_transition_function(const VectorXd &x, const VectorXd &u) {
 };
 
 VectorXd vehicle_state_transition_function(const VectorXd &x, const VectorXd &u) {
-    double m = 1292.2;
-    double a = 1.006;
-    double b = 1.534;
-    double I = 2380.7;
+    double m = 1292.2;       //Vehicle mass
+    double I = 2380.7;       //Vehicle inertia
+    double a = 1.006;        //CG to front axle
+    double b = 1.534;        //CG to rear axle
+    double c = 20000;        //cornering stiffness
 
     //Construct F
     VectorXd f(6);
     f << x(5) * cos(x(2)) - x(4) * sin(x(2)),
             x(4) * cos(x(2)) + x(5) * sin(x(2)),
             x(3),
-            (b * u(0) * u(1) * 2) / (I * (u(1) + 1)),
-            -x(3) * x(5),
-            -x(3) * x(5) + (u(0) - (u(0) * pow(u(1), 2)) / (u(1) + 1)) / m;
+            (b * c * (u(2) - (x(4) + a * x(3)) / x(5)) + a * u(0) * u(2) + (b * c * (x(4) - b * x(3))) / x(5)) / I,
+            -x(3) * x(5) + (u(0) * u(2) + c * (u(2) - (x(4) + a * x(3)) / x(5)) - (c * (x(4) - b * x(3))) / x(5)) / m,
+            -x(3) * x(5) + (u(0) + u(1) - c * u(2) * (u(2) - (x(4) + a * x(3)) / x(5))) / m;
+
 
     return f;
 };
 
 MatrixXd vehicle_state_transition_jacobian(const VectorXd &x, const VectorXd &u) {
+    double m = 1292.2;       //Vehicle mass
+    double I = 2380.7;       //Vehicle inertia
+    double a = 1.006;        //CG to front axle
+    double b = 1.534;        //CG to rear axle
+    double c = 20000;        //cornering stiffness
     //Construct J
     MatrixXd J = MatrixXd::Zero(6, 6);
+
     J(0, 2) = -x(4) * cos(x(2)) - x(5) * sin(x(2));
     J(0, 4) = -sin(x(2));
     J(0, 5) = cos(x(2));
     J(1, 2) = x(5) * cos(x(2)) - x(4) * sin(x(2));
     J(1, 4) = cos(x(2));
     J(1, 5) = sin(x(2));
-    J(2, 3) = 1;
-    J(4, 3) = -x(5);
-    J(4, 5) = -x(3);
-    J(5, 3) = -x(5);
-    J(5, 5) = -x(3);
-
+    J(2, 3) = 1.0;
+    J(3, 3) = -(((b * b) * c) / x(5) + (a * b * c) / x(5)) / I;
+    J(3, 5) = (b * c * 1.0 / pow(x(5), 2) * (x(4) + a * x(3)) - b * c * 1.0 / pow(x(5), 2) * (x(4) - b * x(3))) / I;
+    J(4, 3) = -x(5) - ((a * c) / x(5) - (b * c) / x(5)) / m;
+    J(4, 4) = (c * -2) / (m * x(5));
+    J(4, 5) = -x(3) + (c * 1.0 / pow(x(5), 2) * (x(4) + a * x(3)) + c * 1.0 / pow(x(5), 2) * (x(4) - b * x(3))) / m;
+    J(5, 3) = -x(5) + (a * c * u(2)) / (m * x(5));
+    J(5, 4) = (c * u(2)) / (m * x(5));
+    J(5, 5) = -x(3) - (c * u(2) * 1.0 / pow(x(5), 2) * (x(4) + a * x(3))) / m;
     return J;
 };
 
 typedef VectorXd state_type;
 runge_kutta_dopri5<state_type, double, state_type, double, vector_space_algebra> stepper;
+
 struct ode {
     Fusion *f;
     VectorXd u;
@@ -92,7 +104,7 @@ struct ode {
     ode(Fusion *f, VectorXd u, normal_random_variable v) : f(f), u(move(u)), v(move(v)) {}
 
     void operator()(state_type const &x, state_type &dxdt, double t) const {
-        dxdt = f->state_transition_function(x, u)+v();
+        dxdt = f->state_transition_function(x, u) + v();
     }
 };
 
@@ -152,15 +164,16 @@ int main(int argc, char *argv[]) {
             N = 6;
             dt = 0.03;
             T = 4;
-            f = Fusion(N);
+            x = VectorXd::Zero(N);
+            x(5) = 1; // setting vn to some value (if vn=zero the slip angle is nan)
+            f = Fusion(N, x);
             f.setConstantDt(dt);
             f.state_transition_function = vehicle_state_transition_function;
             f.state_transition_jacobian = vehicle_state_transition_jacobian;
-            x = VectorXd::Zero(N);
-            Q = MatrixXd::Random(N, N) / 5;
-            R = MatrixXd::Random(N / 2, N / 2) / 10;
-            u = VectorXd(2);
-            u << 5000, 5 * 3.14 / 180.0; //Pr, d
+            Q = MatrixXd::Random(N, N) / 10;
+            R = MatrixXd::Random(N / 2, N / 2) / 20;
+            u = VectorXd(3);
+            u << 0, 5000, 5 * 3.14 / 180.0; //Pf, Pr, d
             break;
         default:
             exit(1);
@@ -179,21 +192,20 @@ int main(int argc, char *argv[]) {
     bool isnanprinted = false;
     for (int i = 0; i < (int) T / dt; i++) {
         //Simulate movement with simulated process noise and try to predict it
-        if (testCaseIndex == 3 && i * dt >= T / 4) {
-            u(1) = -abs(u(1));
+        if (testCaseIndex == 3 && i * dt >= T / 2) {
+            u(2) = -abs(u(2));
         }
         integrate_const(stepper, ode(&f, u, v), x, 0.0, dt, dt / 100);
         f.predict(u, Q);
-
         //Update kalman filter with simulated measurement noise
         VectorXd z = f.observation_function(x) + w();
         f.update(z, R);
-
         //Print information
         if (isnan(f.getP()(1, 1))) {
             if (!isnanprinted) {
                 cout << "isnan i=" << i << endl;
                 isnanprinted = true;
+                return 0;
             }
             file << x.head(2).format(csv) << "," << z.head(2).format(csv) << ","
                  << "-1,-1"
