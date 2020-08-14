@@ -15,4 +15,5 @@ legend start ground\_truth observations kalman
 
 Qo=cov(ox-tx,oy-ty);
 Qk=cov(kx-tx,ky-ty);
+disp(det(Qk))
 disp(det(Qo)/det(Qk));

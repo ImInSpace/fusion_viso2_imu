@@ -132,6 +132,8 @@ int main(int argc, char *argv[]) {
     VectorXd u;
     MatrixXd Q;
     MatrixXd R;
+    MatrixXd R2;
+    int use_R2_every_x_steps = 0;
     switch (testCaseIndex) {
         case 1: //constant_movement
             N = 4;
@@ -166,12 +168,18 @@ int main(int argc, char *argv[]) {
             T = 4;
             x = VectorXd::Zero(N);
             x(5) = 1; // setting vn to some value (if vn=zero the slip angle is nan)
-            f = Fusion(N, x);
+            // Also setting the P to zero to let it know it is a perfect guess
+            // (if not it can go to nan when guessing the answer at the begining)
+            u=VectorXd(N);
+            u<<2000,2000,2000,2000,2000,0;
+            f = Fusion(N, x,  DiagonalMatrix<double, 6>(u));
             f.setConstantDt(dt);
             f.state_transition_function = vehicle_state_transition_function;
             f.state_transition_jacobian = vehicle_state_transition_jacobian;
-            Q = MatrixXd::Random(N, N) / 10;
-            R = MatrixXd::Random(N / 2, N / 2) / 20;
+            Q = MatrixXd::Random(N, N) / 5;
+            R = DiagonalMatrix<double, 3>(1, 1, 2000);
+            R2 = DiagonalMatrix<double, 3>(2000, 2000, 1.0/20);
+            use_R2_every_x_steps = 2;
             u = VectorXd(3);
             u << 0, 5000, 5 * 3.14 / 180.0; //Pf, Pr, d
             break;
@@ -187,6 +195,7 @@ int main(int argc, char *argv[]) {
     //Initialize noise generators for v and w
     normal_random_variable v{Q};
     normal_random_variable w{R};
+    normal_random_variable w2{R2};
 
     //Start simulation
     bool isnanprinted = false;
@@ -198,8 +207,15 @@ int main(int argc, char *argv[]) {
         integrate_const(stepper, ode(&f, u, v), x, 0.0, dt, dt / 100);
         f.predict(u, Q);
         //Update kalman filter with simulated measurement noise
-        VectorXd z = f.observation_function(x) + w();
-        f.update(z, R);
+        VectorXd z = f.observation_function(x);
+        if (use_R2_every_x_steps > 0 && i % use_R2_every_x_steps == 0 && i > 0) {
+            z += w2();
+            f.update(z, R2);
+        }
+        else {
+            z += w();
+            f.update(z, R);
+        }
         //Print information
         if (isnan(f.getP()(1, 1))) {
             if (!isnanprinted) {
