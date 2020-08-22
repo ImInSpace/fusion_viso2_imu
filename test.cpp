@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
     VectorXd u;
     MatrixXd Q;
     MatrixXd R;
-    MatrixXd R2;
+    MatrixXd R2 = MatrixXd::Identity(2, 2);
     int use_R2_every_x_steps = 0;
     switch (testCaseIndex) {
         case 1: //constant_movement
@@ -195,6 +195,7 @@ int main(int argc, char *argv[]) {
     //Make Q and R into positive semi-definite matrices
     Q = Q.transpose() * Q;
     R = R.transpose() * R;
+    R2 = R2.transpose() * R2;
 
     //Initialize noise generators for v and w
     normal_random_variable v{Q};
