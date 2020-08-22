@@ -1,5 +1,5 @@
 #include<iostream>
-#include "library.h"
+#include "library/library.h"
 #include "multivar_noise.h"
 #include <fstream>
 #include <cmath>
