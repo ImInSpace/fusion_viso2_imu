@@ -1,5 +1,5 @@
 close all
-system('cmake-build-debug\test_fusion_viso2_imu.exe 3');
+system('cmake-build-debug\test_fusion_viso2_imu.exe 1 1');
 X=csvread("data.csv");
 tx=X(:,1); ty=X(:,2);
 ox=X(:,3); oy=X(:,4);

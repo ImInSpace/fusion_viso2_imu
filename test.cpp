@@ -114,6 +114,10 @@ int main(int argc, char *argv[]) {
     if (argc >= 2) {
         testCaseIndex = strtol(argv[1], nullptr, 10);
     }
+    bool only_ground_truth = true;
+    if (argc >= 3) {
+        only_ground_truth = strtol(argv[2], nullptr, 10)==1;
+    }
     //Setup output format and file
     IOFormat singleLine(StreamPrecision, DontAlignCols, ",\t", ";\t", "", "", "[", "]");
     IOFormat csv(FullPrecision, DontAlignCols, ",", ",", "", "", "", "");
@@ -205,16 +209,17 @@ int main(int argc, char *argv[]) {
             u(2) = -abs(u(2));
         }
         integrate_const(stepper, ode(&f, u, v), x, 0.0, dt, dt / 100);
-        f.predict(u, Q);
-        //Update kalman filter with simulated measurement noise
         VectorXd z = f.observation_function(x);
-        if (use_R2_every_x_steps > 0 && i % use_R2_every_x_steps == 0 && i > 0) {
-            z += w2();
-            f.update(z, R2);
-        }
-        else {
-            z += w();
-            f.update(z, R);
+        if (!only_ground_truth) {
+            f.predict(u, Q);
+            //Update kalman filter with simulated measurement noise
+            if (use_R2_every_x_steps > 0 && i % use_R2_every_x_steps == 0 && i > 0) {
+                z += w2();
+                f.update(z, R2);
+            } else {
+                z += w();
+                f.update(z, R);
+            }
         }
         //Print information
         if (isnan(f.getP()(1, 1))) {
