@@ -1,4 +1,6 @@
 // from https://stackoverflow.com/questions/6142576/sample-from-multivariate-normal-gaussian-distribution-in-c
+#ifndef FUSION_VISO2_IMU_MULTIVAR_NOISE_H
+#define FUSION_VISO2_IMU_MULTIVAR_NOISE_H
 
 #include <Eigen\Dense>
 #include <utility>
@@ -28,3 +30,5 @@ struct normal_random_variable
         return mean + transform * Eigen::VectorXd{ mean.size() }.unaryExpr([&](auto x) { return dist(gen); });
     }
 };
+
+#endif //FUSION_VISO2_IMU_MULTIVAR_NOISE_H

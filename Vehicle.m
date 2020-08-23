@@ -31,7 +31,7 @@ if ~ignore_lateral_force
     Fzf=(m*g*b-(Pf+Pr)*h)/(a+b); %normal load on front tyre
     Fzr=(m*g*a-(Pf+Pr)*h)/(a+b); %normal load on rear tyre
 
-    af=d-(a*th_dot+Ve)/Vn;  %front wheel slip angle
+    af=d-(a*th_dot+ Ve)/Vn;  %front wheel slip angle
     ar=(b*th_dot-Ve)/Vn;    %rear wheel slip angle
 
     %asf=c*af/(mu*Fzf);
@@ -48,13 +48,22 @@ else
 end
 
 %% ODE definition
-F=[-Ve*sin(th)+Vn*cos(th);
-    Ve*cos(th)+Vn*sin(th);
-    th_dot;
-    (a*Pf*d+b*Fef-b*Fer)/I;
-    (Pf*d+Fef+Fer)/m-Vn*th_dot;
-    (Pf+Pr-Fef*d)/m-Vn*th_dot;
+F=[ Vn*cos(th)-Ve*sin(th);     %x
+    Vn*sin(th)+Ve*cos(th);     %y
+    th_dot;                    %th
+    (a*Pf*d+a*Fef-b*Fer)/I;    %th_dot
+    (Pf*d+Fef+Fer)/m-Vn*th_dot;%Ve
+    (Pf+Pr-Fef*d)/m-Vn*th_dot; %Vn
   ];
+
+F= [Vn*cos(th)-Ve*sin(th);     %x=X
+    Vn*sin(th)+Ve*cos(th);     %y=Y
+    th_dot;                    %th=psi
+    (a*Fef-b*Fer)/I;    %th_dot=psi_dot
+    (Fef*cos(d)+Fer)/m-Vn*th_dot;%Ve=y_dot
+    (Pr-Fef*sin(d))/m+Ve*th_dot; %Vn=x_dot
+  ]; %a=lf, b=lr
+
 
 vpa(subs(F,[U;X],[Us;Xs]),3)
 %return

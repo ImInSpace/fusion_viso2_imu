@@ -1,0 +1,3 @@
+add_library(functions_fusion_viso2_imu functions.cpp functions.h)
+target_include_directories(functions_fusion_viso2_imu PUBLIC ${Boost_INCLUDE_DIRS})
+target_link_libraries(functions_fusion_viso2_imu ${Boost_LIBRARIES})

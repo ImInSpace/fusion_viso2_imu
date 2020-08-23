@@ -1,5 +1,5 @@
 close all
-system('cmake-build-debug\test_fusion_viso2_imu.exe 1 1');
+system('cmake-build-debug\test_fusion_viso2_imu.exe 3 0');
 X=csvread("data.csv");
 tx=X(:,1); ty=X(:,2);
 ox=X(:,3); oy=X(:,4);
@@ -13,7 +13,16 @@ plot(kx,ky,'b')
 axis equal
 legend start ground\_truth observations kalman
 
+%{
 Qo=cov(ox-tx,oy-ty);
 Qk=cov(kx-tx,ky-ty);
 disp(det(Qk))
 disp(det(Qo)/det(Qk));
+%}
+dist_traveled=[0;cumsum(sqrt(diff(tx).^2+diff(ty).^2))];
+dist_error=vecnorm([ox-tx oy-ty],2,2);
+figure()
+hold on
+plot(dist_traveled,dist_error)
+dlm = fitlm(dist_traveled,dist_error,'Intercept',false);
+fprintf('%.1f%%\n',dlm.Coefficients.Estimate*100)
