@@ -123,14 +123,15 @@ int main(int argc, char *argv[]) {
             u(2) += fRand(-1., 1.) * 5 * EIGEN_PI / 180; // NOLINT(cert-msc30-c,cert-msc50-cpp)
             u(2) = clamp(u(2), -max_steering_angle, max_steering_angle);
         }
+        VectorXd truth_prev = ground_truth;
         VectorXd x_prev = x;
-        integrate(dt, f.state_transition_function, ground_truth, u, zero_noise);
-        integrate(dt, f.state_transition_function, x, u, zero_noise);
+        integrate(dt, f.state_transition_function, ground_truth, u, v);
+        integrate(dt, f.state_transition_function, x, u, v);
 
-        VectorXd z = f.observation_function(x);
+        VectorXd z = f.observation_function(ground_truth);
         if (testCaseIndex == 3) { //should be a boolean like use_deltas above
-            VectorXd vars_dot = (x.head(N / 2) - x_prev.head(N / 2)) / dt;
-            double th = x(2);
+            VectorXd vars_dot = (ground_truth.head(N / 2) - truth_prev.head(N / 2)) / dt;
+            double th = truth_prev(2);
             z << vars_dot(0) * cos(th) + vars_dot(1) * sin(th), //Vn
                     -vars_dot(0) * sin(th) + vars_dot(1) * cos(th), //Ve
                     vars_dot(2); //th_dot
@@ -143,7 +144,7 @@ int main(int argc, char *argv[]) {
             z += w();
 
         if (testCaseIndex == 3) {//should be a boolean like use_deltas above
-            double th = x(2);
+            double th = x_prev(2);
             VectorXd vars_dot(3);
             vars_dot << z(0) * cos(th) - z(1) * sin(th),
                     z(0) * sin(th) + z(1) * cos(th), z(2);
@@ -152,10 +153,8 @@ int main(int argc, char *argv[]) {
         if (!only_ground_truth) {
             if (isnan(f.getP()(1, 1))) cout << "Is nan before predict" << endl;
             f.predict(u, Q);
-            if (isnan(f.getP()(1, 1))) {
-                cout << "Is nan after predict" << endl;
-                cout << "Vn is " << x_prev(3) << endl;
-            }
+            if (isnan(f.getP()(1, 1))) cout << "Is nan after predict" << endl;
+
             //Update kalman filter with simulated measurement noise
             if (use_R2)
                 f.update(z, R2);
