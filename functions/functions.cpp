@@ -52,12 +52,12 @@ VectorXd vehicle_state_transition_function(const VectorXd &x, const VectorXd &u)
 
     //Construct F
     VectorXd f(6);
-    f << x(5) * cos(x(2)) - x(4) * sin(x(2)),
-            x(4) * cos(x(2)) + x(5) * sin(x(2)),
-            x(3),
-            (a * c * (u(2) - (x(4) + a * x(3)) / x(5)) + (b * c * (x(4) - b * x(3))) / x(5)) / I,
-            -x(3) * x(5) - ((c * (x(4) - b * x(3))) / x(5) - c * cos(u(2)) * (u(2) - (x(4) + a * x(3)) / x(5))) / m,
-            x(3) * x(4) + (u(1) - c * sin(u(2)) * (u(2) - (x(4) + a * x(3)) / x(5))) / m;
+    f << x(3) * cos(x(2)) - x(4) * sin(x(2)),
+            x(4) * cos(x(2)) + x(3) * sin(x(2)),
+            x(5),
+            x(4) * x(5) + (u(1) - c * sin(u(2)) * (u(2) - (x(4) + a * x(5)) / x(3))) / m,
+            -x(3) * x(5) - ((c * (x(4) - b * x(5))) / x(3) - c * cos(u(2)) * (u(2) - (x(4) + a * x(5)) / x(3))) / m,
+            (a * c * (u(2) - (x(4) + a * x(5)) / x(3)) + (b * c * (x(4) - b * x(5))) / x(3)) / I;
 
 
     return f;
@@ -72,44 +72,36 @@ MatrixXd vehicle_state_transition_jacobian(const VectorXd &x, const VectorXd &u)
     //Construct J
     MatrixXd J = MatrixXd::Zero(6, 6);
 
-    J(0, 2) = -x(4) * cos(x(2)) - x(5) * sin(x(2));
+    J(0, 2) = -x(4) * cos(x(2)) - x(3) * sin(x(2));
+    J(0, 3) = cos(x(2));
     J(0, 4) = -sin(x(2));
-    J(0, 5) = cos(x(2));
-    J(1, 2) = x(5) * cos(x(2)) - x(4) * sin(x(2));
+    J(1, 2) = x(3) * cos(x(2)) - x(4) * sin(x(2));
+    J(1, 3) = sin(x(2));
     J(1, 4) = cos(x(2));
-    J(1, 5) = sin(x(2));
-    J(2, 3) = 1.0;
-    J(3, 3) = -(((a * a) * c) / x(5) + ((b * b) * c) / x(5)) / I;
-    J(3, 4) = -((a * c) / x(5) - (b * c) / x(5)) / I;
-    J(3, 5) = (a * c * 1.0 / pow(x(5), 2) * (x(4) + a * x(3)) - b * c * 1.0 / pow(x(5), 2) * (x(4) - b * x(3))) / I;
-    J(4, 3) = -x(5) + ((b * c) / x(5) - (a * c * cos(u(2))) / x(5)) / m;
-    J(4, 4) = -(c / x(5) + (c * cos(u(2))) / x(5)) / m;
-    J(4, 5) = -x(3) +
-              (c * 1.0 / pow(x(5), 2) * (x(4) - b * x(3)) + c * 1.0 / pow(x(5), 2) * cos(u(2)) * (x(4) + a * x(3))) / m;
-    J(5, 3) = x(4) + (a * c * sin(u(2))) / (m * x(5));
-    J(5, 4) = x(3) + (c * sin(u(2))) / (m * x(5));
-    J(5, 5) = -(c * 1.0 / pow(x(5), 2) * sin(u(2)) * (x(4) + a * x(3))) / m;
+    J(2, 5) = 1.0;
+    J(3, 3) = -(c * 1.0 / pow(x(3), 2) * sin(u(2)) * (x(4) + a * x(5))) / m;
+    J(3, 4) = x(5) + (c * sin(u(2))) / (m * x(3));
+    J(3, 5) = x(4) + (a * c * sin(u(2))) / (m * x(3));
+    J(4, 3) = -x(5) +
+              (c * 1.0 / pow(x(3), 2) * (x(4) - b * x(5)) + c * 1.0 / pow(x(3), 2) * cos(u(2)) * (x(4) + a * x(5))) / m;
+    J(4, 4) = -(c / x(3) + (c * cos(u(2))) / x(3)) / m;
+    J(4, 5) = -x(3) + ((b * c) / x(3) - (a * c * cos(u(2))) / x(3)) / m;
+    J(5, 3) = (a * c * 1.0 / pow(x(3), 2) * (x(4) + a * x(5)) - b * c * 1.0 / pow(x(3), 2) * (x(4) - b * x(5))) / I;
+    J(5, 4) = -((a * c) / x(3) - (b * c) / x(3)) / I;
+    J(5, 5) = -(((a * a) * c) / x(3) + ((b * b) * c) / x(3)) / I;
     return J;
 };
 
 
 VectorXd vehicle_observation_function(const VectorXd &x) {
-    VectorXd h(3);
-    h << x(5) * cos(x(2)) - x(4) * sin(x(2)),
-            x(4) * cos(x(2)) + x(5) * sin(x(2)),
-            x(3);
-    return h;
+    return x.tail(3);
 }
 
 MatrixXd vehicle_observation_jacobian(const VectorXd &x) {
     MatrixXd H = MatrixXd::Zero(3, 6);
-    H(0, 2) = -x(4) * cos(x(2)) - x(5) * sin(x(2));
-    H(0, 4) = -sin(x(2));
-    H(0, 5) = cos(x(2));
-    H(1, 2) = x(5) * cos(x(2)) - x(4) * sin(x(2));
-    H(1, 4) = cos(x(2));
-    H(1, 5) = sin(x(2));
-    H(2, 3) = 1.0;
+    H(0, 3) = 1.0;
+    H(1, 4) = 1.0;
+    H(2, 5) = 1.0;
     return H;
 }
 

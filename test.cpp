@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
             dt = 0.3;
             T = 100;
             x = VectorXd::Zero(N);
-            x(5) = 1; // setting vn to some value (if vn=zero the slip angle is nan)
+            x(3) = 1; // setting vn to some value (if vn=zero the slip angle is nan)
             // Also setting the P to zero to let it know it is a perfect guess
             // (if not it can go to nan when guessing the answer at the begining)
             u = VectorXd(N);
@@ -85,9 +85,8 @@ int main(int argc, char *argv[]) {
             f.state_transition_jacobian = vehicle_state_transition_jacobian;
             f.observation_function = vehicle_observation_function;
             f.observation_jacobian = vehicle_observation_jacobian;
-            u << 0, 0, 0, 0, 1. / 20, 1. / 20;
-            Q = MatrixXd::Identity(6, 6) / 200;
-            R = DiagonalMatrix<double, 3>(1./20, 1. / 20, 1. / 20);
+            Q = MatrixXd::Identity(6, 6) / 20;
+            R = DiagonalMatrix<double, 3>(1. / 20, 1. / 20, 1. / 20);
             R2 = DiagonalMatrix<double, 3>(1. / 20, 1. / 20, 1. / 20);
             use_R2_every_x_steps = 0;
             u = VectorXd(3);
@@ -129,8 +128,13 @@ int main(int argc, char *argv[]) {
         integrate(dt, f.state_transition_function, x, u, zero_noise);
 
         VectorXd z = f.observation_function(x);
-        if (testCaseIndex == 3) //should be a boolean like use_deltas above
-            z = (x - x_prev).head(N / 2) / dt;
+        if (testCaseIndex == 3) { //should be a boolean like use_deltas above
+            VectorXd vars_dot = (x.head(N / 2) - x_prev.head(N / 2)) / dt;
+            double th = x(2);
+            z << vars_dot(0) * cos(th) + vars_dot(1) * sin(th), //Vn
+                    -vars_dot(0) * sin(th) + vars_dot(1) * cos(th), //Ve
+                    vars_dot(2); //th_dot
+        }
 
         bool use_R2 = use_R2_every_x_steps > 0 && i % use_R2_every_x_steps == 0 && i > 0;
         if (use_R2)
@@ -138,15 +142,26 @@ int main(int argc, char *argv[]) {
         else
             z += w();
 
-        if (testCaseIndex == 3) //should be a boolean like use_deltas above
-            x.head(N / 2) = z * dt + x_prev.head(N / 2);
+        if (testCaseIndex == 3) {//should be a boolean like use_deltas above
+            double th = x(2);
+            VectorXd vars_dot(3);
+            vars_dot << z(0) * cos(th) - z(1) * sin(th),
+                    z(0) * sin(th) + z(1) * cos(th), z(2);
+            x.head(N / 2) = vars_dot * dt + x_prev.head(N / 2);
+        }
         if (!only_ground_truth) {
+            if (isnan(f.getP()(1, 1))) cout << "Is nan before predict" << endl;
             f.predict(u, Q);
+            if (isnan(f.getP()(1, 1))) {
+                cout << "Is nan after predict" << endl;
+                cout << "Vn is " << x_prev(3) << endl;
+            }
             //Update kalman filter with simulated measurement noise
             if (use_R2)
                 f.update(z, R2);
             else
                 f.update(z, R);
+            if (isnan(f.getP()(1, 1))) cout << "Is nan after update" << endl;
         }
         //Print information
         if (isnan(f.getP()(1, 1))) {

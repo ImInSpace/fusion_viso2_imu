@@ -5,7 +5,7 @@ syms th         %yaw
 syms th_dot     %yaw rate
 syms Ve         %lateral velocity
 syms Vn         %longitudinal velocity
-X=[x;y;th;th_dot;Ve;Vn];
+X=[x;y;th;Vn;Ve;th_dot];
 Xs=[0;0;0;0;0;1];
 
 %% Input declaration
@@ -48,24 +48,16 @@ else
 end
 
 %% ODE definition
-F=[ Vn*cos(th)-Ve*sin(th);     %x
-    Vn*sin(th)+Ve*cos(th);     %y
-    th_dot;                    %th
-    (a*Pf*d+a*Fef-b*Fer)/I;    %th_dot
-    (Pf*d+Fef+Fer)/m-Vn*th_dot;%Ve
-    (Pf+Pr-Fef*d)/m-Vn*th_dot; %Vn
-  ];
-
 F= [Vn*cos(th)-Ve*sin(th);     %x=X
     Vn*sin(th)+Ve*cos(th);     %y=Y
     th_dot;                    %th=psi
-    (a*Fef-b*Fer)/I;    %th_dot=psi_dot
-    (Fef*cos(d)+Fer)/m-Vn*th_dot;%Ve=y_dot
     (Pr-Fef*sin(d))/m+Ve*th_dot; %Vn=x_dot
+    (Fef*cos(d)+Fer)/m-Vn*th_dot;%Ve=y_dot
+    (a*Fef-b*Fer)/I;    %th_dot=psi_dot
   ]; %a=lf, b=lr
 
-h=[Vn*cos(th)-Ve*sin(th);     %x=X
-   Vn*sin(th)+Ve*cos(th);     %y=Y
+h=[Vn;     %x=X
+   Ve;     %y=Y
    th_dot];
 %h=[Ve+Vn y th];
 %vpa(subs(F,[U;X],[Us;Xs]),3)
