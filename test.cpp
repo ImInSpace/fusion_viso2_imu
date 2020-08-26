@@ -72,22 +72,24 @@ int main(int argc, char *argv[]) {
         case 3: //Vehicle dynamics
             N = 6;
             dt = 0.3;
-            T = 200;
+            T = 100;
             x = VectorXd::Zero(N);
             x(5) = 1; // setting vn to some value (if vn=zero the slip angle is nan)
             // Also setting the P to zero to let it know it is a perfect guess
             // (if not it can go to nan when guessing the answer at the begining)
             u = VectorXd(N);
-            u << 2000, 2000, 2000, 2000, 2000, 0;
+            u << 0, 0, 0, 0, 0, 0;
             f = Fusion(N, x, DiagonalMatrix<double, 6>(u));
             f.setConstantDt(dt);
             f.state_transition_function = vehicle_state_transition_function;
             f.state_transition_jacobian = vehicle_state_transition_jacobian;
-            u << 0, 0, 0, 0, 1./20, 1./20;
-            Q = DiagonalMatrix<double, 6>(u);
-            R = DiagonalMatrix<double, 3>(1/20, 1/20, 2000);
-            R2 = DiagonalMatrix<double, 3>(1/20, 1/20, 1.0 / 20);
-            use_R2_every_x_steps = 2;
+            f.observation_function = vehicle_observation_function;
+            f.observation_jacobian = vehicle_observation_jacobian;
+            u << 0, 0, 0, 0, 1. / 20, 1. / 20;
+            Q = MatrixXd::Identity(6, 6) / 200;
+            R = DiagonalMatrix<double, 3>(1./20, 1. / 20, 1. / 20);
+            R2 = DiagonalMatrix<double, 3>(1. / 20, 1. / 20, 1. / 20);
+            use_R2_every_x_steps = 0;
             u = VectorXd(3);
             max_steering_angle = 10 * EIGEN_PI / 180.0;
             u << 0, 0, 0; //Pf, Pr, d
@@ -98,10 +100,15 @@ int main(int argc, char *argv[]) {
     }
 
 
+
     //Make Q and R into positive semi-definite matrices
     Q = Q.transpose() * Q;
     R = R.transpose() * R;
+    MatrixXd Rf = MatrixXd::Zero(N, N);
+    Rf.bottomRightCorner(N / 2, N / 2) = R;
     R2 = R2.transpose() * R2;
+    MatrixXd R2f = MatrixXd::Zero(N, N);
+    R2f.bottomRightCorner(N / 2, N / 2) = R;
 
     //Initialize noise generators for v and w
     normal_random_variable v{Q};
@@ -117,15 +124,22 @@ int main(int argc, char *argv[]) {
             u(2) += fRand(-1., 1.) * 5 * EIGEN_PI / 180; // NOLINT(cert-msc30-c,cert-msc50-cpp)
             u(2) = clamp(u(2), -max_steering_angle, max_steering_angle);
         }
+        VectorXd x_prev = x;
         integrate(dt, f.state_transition_function, ground_truth, u, zero_noise);
-        integrate(dt, f.state_transition_function, x, u, v);
+        integrate(dt, f.state_transition_function, x, u, zero_noise);
+
         VectorXd z = f.observation_function(x);
+        if (testCaseIndex == 3) //should be a boolean like use_deltas above
+            z = (x - x_prev).head(N / 2) / dt;
 
         bool use_R2 = use_R2_every_x_steps > 0 && i % use_R2_every_x_steps == 0 && i > 0;
         if (use_R2)
             z += w2();
         else
             z += w();
+
+        if (testCaseIndex == 3) //should be a boolean like use_deltas above
+            x.head(N / 2) = z * dt + x_prev.head(N / 2);
         if (!only_ground_truth) {
             f.predict(u, Q);
             //Update kalman filter with simulated measurement noise
@@ -139,7 +153,7 @@ int main(int argc, char *argv[]) {
             cout << "isnan i=" << i << endl;
             return 0;
         }
-        file << ground_truth.head(2).format(csv) << "," << z.head(2).format(csv) << ","
+        file << ground_truth.head(2).format(csv) << "," << x.head(2).format(csv) << ","
              << f.getx().head(2).format(csv)
              << "," << f.getP().topLeftCorner(2, 2).format(csv) << endl;
     }

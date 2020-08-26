@@ -64,41 +64,57 @@ F= [Vn*cos(th)-Ve*sin(th);     %x=X
     (Pr-Fef*sin(d))/m+Ve*th_dot; %Vn=x_dot
   ]; %a=lf, b=lr
 
-
-vpa(subs(F,[U;X],[Us;Xs]),3)
+h=[Vn*cos(th)-Ve*sin(th);     %x=X
+   Vn*sin(th)+Ve*cos(th);     %y=Y
+   th_dot];
+%h=[Ve+Vn y th];
+%vpa(subs(F,[U;X],[Us;Xs]),3)
 %return
 %F=simplify(F);
 J=jacobian(F,X);
+H=jacobian(h,X);
+B=jacobian(F,U);
 %J=simplify(J);
 
+%% Print as c code
 
-syms x(t) u(t)
-F=subs(F,X,x(0:length(X)-1).');
-F=subs(F,U,u(0:length(U)-1).');
-J=subs(J,X,x(0:length(X)-1).');
-J=subs(J,U,u(0:length(U)-1).');
-fprintf("f << ");
-for i=1:6
-    warning off all
-    Fi=ccode(F(i));
-    Fi=regexprep(Fi,'  t0 = ','');
-    Fi=regexprep(Fi,';','');
-    Fi=regexprep(Fi,'.0)',')');
-    if(i==6)
-        fprintf('%s;\n\n',Fi)
-    else
-        fprintf('%s,\n',Fi)
-    end
-end
+warning off all
+print_vec(F,'f',X,U);
+print_mat(J,'J',X,U);
+print_vec(h,'h',X,U);
+print_mat(H,'H',X,U);
 
-for i=1:6
-    for j=1:6
-        if J(i,j)~=0
-            Jij=ccode(J(i,j));
-            Jij=regexprep(Jij,'  t0 = ','');
-            Jij=regexprep(Jij,';','');
-            Jij=regexprep(Jij,'.0)',')');
-            fprintf('J(%i,%i)=%s;\n',i-1,j-1,Jij)
+function print_vec(F,name,X,U)
+    syms x(t) u(t)
+    F=subs(F,X,x(0:length(X)-1).');
+    F=subs(F,U,u(0:length(U)-1).');
+    fprintf("%s << ",name);
+    for i=1:length(F)
+        Fi=ccode(F(i));
+        Fi=regexprep(Fi,'  t0 = ','');
+        Fi=regexprep(Fi,';','');
+        Fi=regexprep(Fi,'.0)',')');
+        if(i==length(F))
+            fprintf('%s;\n\n',Fi)
+        else
+            fprintf('%s,\n',Fi)
         end
     end
+end
+function print_mat(J,name,X,U)
+    syms x(t) u(t)
+    J=subs(J,X,x(0:length(X)-1).');
+    J=subs(J,U,u(0:length(U)-1).');
+    for i=1:size(J,1)
+        for j=1:size(J,2)
+            if J(i,j)~=0
+                Jij=ccode(J(i,j));
+                Jij=regexprep(Jij,'  t0 = ','');
+                Jij=regexprep(Jij,';','');
+                Jij=regexprep(Jij,'.0)',')');
+                fprintf('%s(%i,%i)=%s;\n',name,i-1,j-1,Jij)
+            end
+        end
+    end
+    fprintf('\n');
 end

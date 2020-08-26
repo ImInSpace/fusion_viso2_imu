@@ -25,6 +25,10 @@ VectorXd vehicle_state_transition_function(const VectorXd &x, const VectorXd &u)
 
 MatrixXd vehicle_state_transition_jacobian(const VectorXd &x, const VectorXd &u);
 
+VectorXd vehicle_observation_function(const VectorXd &x);
+
+MatrixXd vehicle_observation_jacobian(const VectorXd &x);
+
 typedef VectorXd state_type;
 
 struct ode {

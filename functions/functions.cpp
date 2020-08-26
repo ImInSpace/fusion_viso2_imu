@@ -93,6 +93,26 @@ MatrixXd vehicle_state_transition_jacobian(const VectorXd &x, const VectorXd &u)
 };
 
 
+VectorXd vehicle_observation_function(const VectorXd &x) {
+    VectorXd h(3);
+    h << x(5) * cos(x(2)) - x(4) * sin(x(2)),
+            x(4) * cos(x(2)) + x(5) * sin(x(2)),
+            x(3);
+    return h;
+}
+
+MatrixXd vehicle_observation_jacobian(const VectorXd &x) {
+    MatrixXd H = MatrixXd::Zero(3, 6);
+    H(0, 2) = -x(4) * cos(x(2)) - x(5) * sin(x(2));
+    H(0, 4) = -sin(x(2));
+    H(0, 5) = cos(x(2));
+    H(1, 2) = x(5) * cos(x(2)) - x(4) * sin(x(2));
+    H(1, 4) = cos(x(2));
+    H(1, 5) = sin(x(2));
+    H(2, 3) = 1.0;
+    return H;
+}
+
 runge_kutta_dopri5<state_type, double, state_type, double, vector_space_algebra> stepper2;
 
 void
