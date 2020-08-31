@@ -6,6 +6,8 @@
 #include <cstdlib> // for strtol()
 #include <utility>
 #include "functions/functions.h"
+#include "yaml-cpp/yaml.h"
+#include <filesystem>
 
 using namespace std;
 
@@ -20,6 +22,13 @@ int main(int argc, char *argv[]) {
     if (argc >= 3) {
         only_ground_truth = strtol(argv[2], nullptr, 10) == 1;
     }
+
+    //Input parameters
+    string yamlfile = "config.yaml";
+    if (!filesystem::exists(yamlfile)) yamlfile = "..\\" + yamlfile;
+    cout<<yamlfile<<endl;
+    YAML::Node config = YAML::LoadFile("..\\config.yaml");
+
     //Setup output format and file
     IOFormat singleLine(StreamPrecision, DontAlignCols, ",\t", ";\t", "", "", "[", "]");
     IOFormat csv(FullPrecision, DontAlignCols, ",", ",", "", "", "", "");
@@ -172,4 +181,5 @@ int main(int argc, char *argv[]) {
              << "," << f.getP().topLeftCorner(2, 2).format(csv) << endl;
     }
     file.close();
+    return 0;
 }
