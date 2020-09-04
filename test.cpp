@@ -6,11 +6,17 @@
 #include <cstdlib> // for strtol()
 #include <utility>
 #include "functions/functions.h"
+#include "library/library.h"
+#include "multivar_noise.h"
 #include "yaml-cpp/yaml.h"
 #include <filesystem>
 
 using namespace std;
 
+VectorXd vecFromYAML(const YAML::Node node, int size)
+{
+    return Eigen::Map<Eigen::VectorXd>(node.as<vector<double>>().data(), size);
+}
 
 int main(int argc, char *argv[]) {
     //Input variables
@@ -26,8 +32,8 @@ int main(int argc, char *argv[]) {
     //Input parameters
     string yamlfile = "config.yaml";
     if (!filesystem::exists(yamlfile)) yamlfile = "..\\" + yamlfile;
-    cout<<yamlfile<<endl;
-    YAML::Node config = YAML::LoadFile("..\\config.yaml");
+    YAML::Node config = YAML::LoadFile(yamlfile);
+    YAML::Node configCase = config[testCaseIndex-1];
 
     //Setup output format and file
     IOFormat singleLine(StreamPrecision, DontAlignCols, ",\t", ";\t", "", "", "[", "]");
@@ -37,70 +43,40 @@ int main(int argc, char *argv[]) {
 
     //Setup random
     srand(time(NULL));
-
-
-    int N;
-    double dt;
-    double T;
-    Fusion f(0);
-    VectorXd x;
-    VectorXd u;
-    MatrixXd Q;
-    MatrixXd R;
+    int N = configCase["N"].as<int>();
+    double dt = configCase["dt"].as<double>();
+    double T = configCase["T"].as<double>();
+    Fusion f(N);
+    f.setConstantDt(dt);
+    VectorXd x = vecFromYAML(configCase["x"],N);
+    VectorXd u = vecFromYAML(configCase["u"],N);
+    MatrixXd Q = vecFromYAML(configCase["Qd"],N).asDiagonal();
+    Q*=configCase["Qm"].as<double>();
+    MatrixXd R = vecFromYAML(configCase["Rd"],N/2).asDiagonal();
+    R*=configCase["Rm"].as<double>();
     MatrixXd R2 = MatrixXd::Identity(2, 2);
+    if (configCase["R2d"]){
+        R2 = vecFromYAML(configCase["R2d"],N/2).asDiagonal();
+        R2 *= configCase["Rm"].as<double>();
+    }
     int use_R2_every_x_steps = 0;
     double max_steering_angle = 0;
     switch (testCaseIndex) {
         case 1: //constant_movement
-            N = 4;
-            dt = 0.03;
-            T = 1.0;
-            f = Fusion(N);
-            f.setConstantDt(dt);
-            x = 10 * VectorXd::Random(N);
-            Q = MatrixXd::Random(N, N) / 10;
-            R = MatrixXd::Random(N / 2, N / 2) / 10;
-            u = VectorXd(N);
-            u << 0, 0, 0, -0.1;
             break;
         case 2: //RTBP
-            N = 4;
-            dt = 0.03;
-            T = 6.2296051135204102;
-            f = Fusion(N);
-            f.setConstantDt(dt);
             f.state_transition_function = RTBP_state_transition_function;
             f.state_transition_jacobian = RTBP_state_transition_jacobian;
-            x = VectorXd(N);
-            x << 1.033366313746765, 0, 0, -.05849376854515592;
-            Q = MatrixXd::Random(N, N) / 1000;
-            R = MatrixXd::Random(N / 2, N / 2) / 1000;
-            u = VectorXd(N);
-            u << 0, 0, 0, 0;
             break;
         case 3: //Vehicle dynamics
-            N = 6;
-            dt = 0.3;
-            T = 100;
-            x = VectorXd::Zero(N);
-            x(3) = 1; // setting vn to some value (if vn=zero the slip angle is nan)
-            // Also setting the P to zero to let it know it is a perfect guess
-            // (if not it can go to nan when guessing the answer at the begining)
-            u = VectorXd(N);
-            u << 0, 0, 0, 0, 0, 0;
-            f = Fusion(N, x, DiagonalMatrix<double, 6>(u));
+            f = Fusion(N, x, MatrixXd::Zero(N,N));
             f.setConstantDt(dt);
             f.state_transition_function = vehicle_state_transition_function;
             f.state_transition_jacobian = vehicle_state_transition_jacobian;
             f.observation_function = vehicle_observation_function;
             f.observation_jacobian = vehicle_observation_jacobian;
-            Q = MatrixXd::Identity(6, 6) / 20;
-            R = DiagonalMatrix<double, 3>(1. / 20, 1. / 20, 1. / 20);
-            R2 = DiagonalMatrix<double, 3>(1. / 20, 1. / 20, 1. / 20);
             use_R2_every_x_steps = 0;
-            u = VectorXd(3);
             max_steering_angle = 10 * EIGEN_PI / 180.0;
-            u << 0, 0, 0; //Pf, Pr, d
 
             break;
         default:
@@ -141,9 +117,9 @@ int main(int argc, char *argv[]) {
         if (testCaseIndex == 3) { //should be a boolean like use_deltas above
             VectorXd vars_dot = (ground_truth.head(N / 2) - truth_prev.head(N / 2)) / dt;
             double th = truth_prev(2);
-            z << vars_dot(0) * cos(th) + vars_dot(1) * sin(th), //Vn
-                    -vars_dot(0) * sin(th) + vars_dot(1) * cos(th), //Ve
-                    vars_dot(2); //th_dot
+            z << vars_dot(0) * cos(th) + vars_dot(1) * sin(th),  // Vn
+                -vars_dot(0) * sin(th) + vars_dot(1) * cos(th),  // Ve
+                vars_dot(2);                                     // th_dot
         }
 
         bool use_R2 = use_R2_every_x_steps > 0 && i % use_R2_every_x_steps == 0 && i > 0;
