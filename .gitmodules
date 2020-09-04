@@ -1,3 +1,6 @@
 [submodule "third-party/yaml-cpp"]
 	path = third-party/yaml-cpp
 	url = https://github.com/jbeder/yaml-cpp
+[submodule "third-party/yamlmatlab"]
+	path = third-party/yamlmatlab
+	url = https://github.com/ewiger/yamlmatlab

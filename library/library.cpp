@@ -1,7 +1,8 @@
-#include <iostream>
 #include "library.h"
+#include <iostream>
 
-double Fusion::predict(const VectorXd &u, const MatrixXd &Q) {
+double Fusion::predict(const VectorXd& u, const MatrixXd& Q)
+{
     /** Compute dt **/
     double dt = getDt();
 
@@ -11,12 +12,12 @@ double Fusion::predict(const VectorXd &u, const MatrixXd &Q) {
     x0.rightCols(N) = P;
 
     /** Integrate ode
-     * NOTE: odeint doesn't support adaptative step size for matrices (https://stackoverflow.com/a/27781777)
+     * NOTE: odeint doesn't support adaptative step size for matrices
+     * (https://stackoverflow.com/a/27781777)
      * TODO: maybe change state to something that permits adaptative step size
      * TODO: if not, add something to manually change the step size instead of just dt/100
      */
     integrate_const(stepper, ode(this, u, Q), x0, 0.0, dt, dt / 100);
-
 
     /** Get variables back from integrator **/
     x = x0.col(0);
@@ -25,8 +26,8 @@ double Fusion::predict(const VectorXd &u, const MatrixXd &Q) {
     return dt;
 }
 
-
-void Fusion::update(const VectorXd &z, const MatrixXd &R) {
+void Fusion::update(const VectorXd& z, const MatrixXd& R)
+{
     /** Check input size **/
     assert(z.rows() == N / 2 && R.cols() == N / 2 && R.rows() == N / 2);
 
