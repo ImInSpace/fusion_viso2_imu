@@ -29,6 +29,11 @@ int main(int argc, char* argv[])
     {
         only_ground_truth = strtol(argv[2], nullptr, 10) == 1;
     }
+    string yamlfile = "config.yaml";
+    if (argc >= 4)
+    {
+        yamlfile = argv[3];
+    }
 
     // Input parameters
     string yamlfile = "config.yaml";
@@ -43,8 +48,8 @@ int main(int argc, char* argv[])
     file.open("data.csv", ios::trunc);
 
     // Setup random
-    srand(time(NULL));
-    int N = configCase["N"].as<int>();
+    srand(0);
+    int N = (int) configCase["N"].as<double>();
     double dt = configCase["dt"].as<double>();
     double T = configCase["T"].as<double>();
     Fusion f(N);
