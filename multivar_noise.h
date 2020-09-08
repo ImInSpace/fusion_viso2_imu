@@ -9,6 +9,7 @@
 
 struct normal_random_variable
 {
+    normal_random_variable() : normal_random_variable(Eigen::MatrixXd::Identity(2, 2)) {}
     explicit normal_random_variable(Eigen::MatrixXd const& covar)
         : normal_random_variable(Eigen::VectorXd::Zero(covar.rows()), covar)
     {

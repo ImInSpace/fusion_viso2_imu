@@ -2,19 +2,32 @@ close all
 system('cmake-build-debug\test_fusion_viso2_imu.exe 3 0');
 X=csvread("data.csv");
 tx=X(:,1); ty=X(:,2);
-ox=X(:,3); oy=X(:,4);
-kx=X(:,5); ky=X(:,6);
+nObs=X(1,3);
+ox=X(:,4:2:(2+2*nObs)); oy=X(:,5:2:(3+2*nObs));
+kx=X(:,4+2*nObs); ky=X(:,5+2*nObs);
 Pk=reshape(X(:,end-3:end).',[2 2 size(X,1)]);
 
 figure()
 hold on
 scatter(tx(1),ty(1),30,'r');
-plot(tx,ty,'r')
-plot(ox,oy,'g')
+legend_text={'start'};
+plot(tx,ty,'r');
+legend_text{end+1}='observation';
+obs_colors='gcmy';
+for i=1:nObs
+    plot(ox(:,i),oy(:,i),obs_colors(i))
+    legend_text{end+1}=['observation ' num2str(i)];
+end
 plot(kx,ky,'b')
+legend_text{end+1}='kalman';
 axis equal
-lgd = legend('start','ground\_truth','observations','kalman');
+if nObs==1
+    obs_legend={'observation'};
+end
+lgd = legend(legend_text);
 lgd.Location='northwest';
+
+return
 shadow=polyshape();
 for i=1:size(X,1)
     shadow=union(shadow,draw_ellipse([kx(i),ky(i)],Pk(:,:,i)));
