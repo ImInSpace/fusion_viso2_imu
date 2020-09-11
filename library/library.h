@@ -1,6 +1,7 @@
 #ifndef FUSION_VISO2_IMU_LIBRARY_H
 #define FUSION_VISO2_IMU_LIBRARY_H
 
+#include <boost/config/warning_disable.hpp>
 #include <Eigen/Dense>                                            //Matrices
 #include <boost/numeric/odeint.hpp>                               //Integrate
 #include <boost/numeric/odeint/algebra/vector_space_algebra.hpp>  //to use Matrices inside odeint
