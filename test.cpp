@@ -11,18 +11,18 @@
 
 using namespace std;
 
-VectorXd vecFromYAML(const YAML::Node node, int size)
+VectorXd vecFromYAML(const YAML::Node& node, int size)
 {
     return Eigen::Map<Eigen::VectorXd>(node.as<vector<double>>().data(), size);
 }
 
 struct Observation
 {
-    Observation(const MatrixXd& r, int every_x, VectorXd x0)
+    Observation(const MatrixXd& r, int every_x, const VectorXd& x0)
         : R(r), every_x(every_x), x(x0), w(normal_random_variable(r)), truth_prev(x0)
     {
     }
-    Observation() {}
+    Observation() = default;
     MatrixXd R;
     int every_x = 1;
     VectorXd x;
@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
     // Input parameters
     if (!filesystem::exists(yamlfile)) yamlfile = "..\\" + yamlfile;
     YAML::Node config = YAML::LoadFile(yamlfile);
-    YAML::Node configCase = config[testCaseIndex - 1];
+    YAML::Node configCase = config["testCase"][testCaseIndex - 1];
 
     // Setup output format and file
     IOFormat singleLine(StreamPrecision, DontAlignCols, ",\t", ";\t", "", "", "[", "]");
@@ -54,7 +54,9 @@ int main(int argc, char* argv[])
     file.open("data.csv", ios::trunc);
 
     // Setup random
-    srand(time(NULL));
+    int seed = (int)config["seed"].as<double>();
+    if (seed == -1) seed = time(NULL);
+    srand(seed);
 
     // Start reading params from config file
     int N = (int)configCase["N"].as<double>();
@@ -75,7 +77,8 @@ int main(int argc, char* argv[])
         R *= configCase["obs"][i]["Rm"].as<double>();
         R = R.transpose() * R;
         int every_X = 1;
-        if (configCase["obs"][i]["every_X"]) every_X = (int) configCase["obs"][i]["every_X"].as<double>();
+        if (configCase["obs"][i]["every_X"])
+            every_X = (int)configCase["obs"][i]["every_X"].as<double>();
         observations[i] = Observation(R, every_X, x0);
     }
     int use_R2_every_x_steps = 0;
@@ -95,7 +98,7 @@ int main(int argc, char* argv[])
             f.state_transition_jacobian = vehicle_state_transition_jacobian;
             f.observation_function = vehicle_observation_function;
             f.observation_jacobian = vehicle_observation_jacobian;
-            max_steering_angle = 10 * EIGEN_PI / 180.0;
+            max_steering_angle = configCase["max_steering_angle"].as<double>();
 
             break;
         default: exit(1);
