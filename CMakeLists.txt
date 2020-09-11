@@ -1,11 +1,18 @@
 cmake_minimum_required(VERSION 3.14)
 project(fusion_viso2_imu)
 
+set(USERNAME $ENV{USERNAME})
+message(${USERNAME})
+if(${USERNAME} STREQUAL "Inigo Moreno")
+set(USERNAME "Moreno Inigo")
+endif()
+message(${USERNAME})
+
 #include eigen
-include_directories("C:\\Users\\inigo\\Documents\\libraries\\eigen-3.3.7")
+include_directories("C:\\Users\\${USERNAME}\\Documents\\libraries\\eigen-3.3.7")
 
 #include boost
-set(BOOST_ROOT "C:\\Users\\inigo\\Documents\\libraries\\boost_1_74_0")
+set(BOOST_ROOT "C:\\Users\\${USERNAME}\\Documents\\libraries\\boost_1_74_0")
 find_package(Boost)
 include_directories(${Boost_INCLUDE_DIRS})
 
