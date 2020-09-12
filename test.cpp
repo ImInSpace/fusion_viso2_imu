@@ -32,7 +32,7 @@ struct Observation
 
 int main(int argc, char* argv[])
 {
-    // Input variables
+    /// Input variables
     int testCaseIndex = 3;
     if (argc >= 2) testCaseIndex = strtol(argv[1], nullptr, 10);
 
@@ -42,23 +42,23 @@ int main(int argc, char* argv[])
     string yamlfile = "config.yaml";
     if (argc >= 4) yamlfile = argv[3];
 
-    // Input parameters
+    /// Input parameters
     if (!filesystem::exists(yamlfile)) yamlfile = "..\\" + yamlfile;
     YAML::Node config = YAML::LoadFile(yamlfile);
     YAML::Node configCase = config["testCase"][testCaseIndex - 1];
 
-    // Setup output format and file
+    /// Setup output format and file
     IOFormat singleLine(StreamPrecision, DontAlignCols, ",\t", ";\t", "", "", "[", "]");
     IOFormat csv(FullPrecision, DontAlignCols, ",", ",", "", "", "", "");
     ofstream file;
     file.open("data.csv", ios::trunc);
 
-    // Setup random
+    /// Setup random
     int seed = (int)config["seed"].as<double>();
     if (seed == -1) seed = time(NULL);
     srand(seed);
 
-    // Start reading params from config file
+    /// Start reading params from config file
     int N = (int)configCase["N"].as<double>();
     double dt = configCase["dt"].as<double>();
     double T = configCase["T"].as<double>();
@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
     {
         MatrixXd R = vecFromYAML(configCase["obs"][i]["Rd"], N / 2).asDiagonal();
         R *= configCase["obs"][i]["Rm"].as<double>();
-        R = R.transpose() * R;
+        R = R.transpose() * R;  // Make R positive semi-definite
         int every_X = 1;
         if (configCase["obs"][i]["every_X"])
             every_X = (int)configCase["obs"][i]["every_X"].as<double>();
@@ -85,13 +85,13 @@ int main(int argc, char* argv[])
     double max_steering_angle = 0;
     switch (testCaseIndex)
     {
-        case 1:  // constant_movement
+        case 1:  /// constant_movement
             break;
-        case 2:  // RTBP
+        case 2:  /// RTBP
             f.state_transition_function = RTBP_state_transition_function;
             f.state_transition_jacobian = RTBP_state_transition_jacobian;
             break;
-        case 3:  // Vehicle dynamics
+        case 3:  /// Vehicle dynamics
             f = Fusion(N, x0, MatrixXd::Zero(N, N));
             f.setConstantDt(dt);
             f.state_transition_function = vehicle_state_transition_function;
@@ -104,68 +104,76 @@ int main(int argc, char* argv[])
         default: exit(1);
     }
 
-    // Make Q and R into positive semi-definite matrices
+    /// Make Q into positive semi-definite matrix
     Q = Q.transpose() * Q;
 
-    // Initialize noise generators for v and w
+    /// Initialize noise generators for v and w
     normal_random_variable v{Q};
     normal_random_variable zero_noise{MatrixXd::Zero(N, N)};
 
-    // Start simulation
+    /// Start simulation
     VectorXd ground_truth = x0;
     for (int i = 1; i <= (int)T / dt; i++)
     {
-        // Simulate movement with simulated process noise and try to predict it
+        /// On the vehicle testcase switch steering angle randomly every 10 steps
         if (testCaseIndex == 3 and i % 10 == 0)
         {
             u(2) += fRand(-1., 1.) * 5 * EIGEN_PI / 180;  // NOLINT(cert-msc30-c,cert-msc50-cpp)
             u(2) = clamp(u(2), -max_steering_angle, max_steering_angle);
         }
+        /// Simulate the movement of ground truth with added noise.
         integrate(dt, f.state_transition_function, ground_truth, u, v);
-        if (!only_ground_truth)
-        {
-            if (isnan(f.getP()(1, 1))) cout << "Is nan before predict" << endl;
-            f.predict(u, Q);
-            if (isnan(f.getP()(1, 1))) cout << "Is nan after predict" << endl;
-        }
 
+        /// Call kalman prediction step.
+        if (!only_ground_truth)
+            f.predict(u, Q);
+
+        /// Iterate through all observations
         for (int iObs = 0; iObs < nObs; iObs++)
         {
-            VectorXd z = f.observation_function(ground_truth);
             Observation obs = observations[iObs];
+            /// Skip observation if it is not its turn
             if (i % obs.every_x != 0) continue;
-            if (testCaseIndex == 3)
-            {  // should be a boolean like use_deltas above
+
+            /// Get observation from ground truth
+            VectorXd z;
+            if (testCaseIndex != 3)
+                f.observation_function(ground_truth);
+            else
+            {
+                /// On the vehicle test case, approximate velocity from pose diff
                 VectorXd vars_dot =
                     (ground_truth.head(N / 2) - obs.truth_prev.head(N / 2)) / (dt * obs.every_x);
+                /// An then transform it to local reference
                 double th = obs.truth_prev(2);
                 z << vars_dot(0) * cos(th) + vars_dot(1) * sin(th),  // Vn
                     -vars_dot(0) * sin(th) + vars_dot(1) * cos(th),  // Ve
                     vars_dot(2);                                     // th_dot
                 obs.truth_prev = ground_truth;
             }
+
+            /// Add noise to the observation
             z += obs.w();
+
             if (testCaseIndex == 3)
-            {  // should be a boolean like use_deltas above
+            {
+                /// On the vehicle test case, undo the previous transformation
                 double th = obs.x(2);
                 VectorXd vars_dot(3);
                 vars_dot << z(0) * cos(th) - z(1) * sin(th), z(0) * sin(th) + z(1) * cos(th), z(2);
                 obs.x.head(N / 2) += vars_dot * (dt * obs.every_x);
             }
             else
-            {
                 obs.x.head(N / 2) = z;
-            }
+
+            /// Call kalman update step
             if (!only_ground_truth)
-            {
-                // Update kalman filter with simulated measurement noise
                 f.update(z, obs.R);
-                if (isnan(f.getP()(1, 1))) cout << "Is nan after update" << endl;
-            }
+
             observations[iObs] = obs;
         }
 
-        // Print information
+        /// Print information
         if (isnan(f.getP()(1, 1)))
         {
             cout << "isnan i=" << i << endl;
