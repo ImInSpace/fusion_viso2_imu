@@ -1,4 +1,4 @@
-close all
+%close all
 system('cmake-build-debug\test_fusion_viso2_imu.exe 3 0');
 X=csvread("data.csv");
 tx=X(:,1); ty=X(:,2);
@@ -12,7 +12,7 @@ hold on
 scatter(tx(1),ty(1),30,'r');
 legend_text={'start'};
 plot(tx,ty,'r');
-legend_text{end+1}='observation';
+legend_text{end+1}='ground\_truth';
 obs_colors='gcmy';
 for i=1:nObs
     plot(ox(:,i),oy(:,i),obs_colors(i))
@@ -25,7 +25,7 @@ if nObs==1
     obs_legend={'observation'};
 end
 lgd = legend(legend_text);
-lgd.Location='northwest';
+lgd.Location='Best';
 
 return
 shadow=polyshape();

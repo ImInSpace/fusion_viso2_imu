@@ -127,3 +127,22 @@ double fRand(double fMin, double fMax)
     double f = (double)rand() / RAND_MAX;
     return fMin + f * (fMax - fMin);
 }
+
+VectorXd vecFromYAML(const YAML::Node& node)
+{
+    auto v = node.as<vector<double>>();
+    return Eigen::Map<Eigen::VectorXd>(v.data(), v.size());
+}
+
+VectorXd vecFromCSV(istream& file)
+{
+    vector<double> result;
+    string line;
+    getline(file, line);
+
+    stringstream lineStream(line);
+    string cell;
+
+    while (getline(lineStream, cell, ',')) result.push_back(stod(cell));
+    return Eigen::Map<VectorXd>(result.data(), result.size());
+}

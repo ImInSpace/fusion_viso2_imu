@@ -13,7 +13,7 @@ include_directories("C:\\Users\\${USERNAME}\\Documents\\libraries\\eigen-3.3.7")
 
 #include boost
 set(BOOST_ROOT "C:\\Users\\${USERNAME}\\Documents\\libraries\\boost_1_60_0")
-find_package(Boost 1.74)
+find_package(Boost)
 include_directories(${Boost_INCLUDE_DIRS})
 
 #include yaml-cpp

@@ -4,17 +4,13 @@
 #include <fstream>
 #include <iostream>
 #include <utility>
+
 #include "functions/functions.h"
 #include "library/library.h"
 #include "multivar_noise.h"
 #include "yaml-cpp/yaml.h"
 
 using namespace std;
-
-VectorXd vecFromYAML(const YAML::Node& node, int size)
-{
-    return Eigen::Map<Eigen::VectorXd>(node.as<vector<double>>().data(), size);
-}
 
 struct Observation
 {
@@ -32,7 +28,7 @@ struct Observation
 
 int main(int argc, char* argv[])
 {
-    /// Input variables
+    /// Input parameters (from argv)
     int testCaseIndex = 3;
     if (argc >= 2) testCaseIndex = strtol(argv[1], nullptr, 10);
 
@@ -42,45 +38,54 @@ int main(int argc, char* argv[])
     string yamlfile = "config.yaml";
     if (argc >= 4) yamlfile = argv[3];
 
-    /// Input parameters
-    if (!filesystem::exists(yamlfile)) yamlfile = "..\\" + yamlfile;
+    /// Input parameters (from YAML)
+    if (!filesystem::exists(yamlfile)) filesystem::current_path("..");
+    assert(filesystem::exists(yamlfile));
     YAML::Node config = YAML::LoadFile(yamlfile);
     YAML::Node configCase = config["testCase"][testCaseIndex - 1];
 
-    /// Setup output format and file
-    IOFormat singleLine(StreamPrecision, DontAlignCols, ",\t", ";\t", "", "", "[", "]");
-    IOFormat csv(FullPrecision, DontAlignCols, ",", ",", "", "", "", "");
-    ofstream file;
-    file.open("data.csv", ios::trunc);
-
-    /// Setup random
-    int seed = (int)config["seed"].as<double>();
-    if (seed == -1) seed = time(NULL);
-    srand(seed);
-
-    /// Start reading params from config file
     int N = (int)configCase["N"].as<double>();
     double dt = configCase["dt"].as<double>();
     double T = configCase["T"].as<double>();
     Fusion f(N);
     f.setConstantDt(dt);
-    VectorXd x0 = vecFromYAML(configCase["x0"], N);
-    VectorXd u = vecFromYAML(configCase["u"], N);
-    MatrixXd Q = vecFromYAML(configCase["Qd"], N).asDiagonal();
+    VectorXd x0 = vecFromYAML(configCase["x0"]);
+    VectorXd u = vecFromYAML(configCase["u"]);
+    MatrixXd Q = vecFromYAML(configCase["Qd"]).asDiagonal();
     Q *= configCase["Qm"].as<double>();
 
     int nObs = configCase["obs"].size();
     vector<Observation> observations(nObs);
     for (int i = 0; i < nObs; i++)
     {
-        MatrixXd R = vecFromYAML(configCase["obs"][i]["Rd"], N / 2).asDiagonal();
+        MatrixXd R = vecFromYAML(configCase["obs"][i]["Rd"]).asDiagonal();
         R *= configCase["obs"][i]["Rm"].as<double>();
         R = R.transpose() * R;  // Make R positive semi-definite
         int every_X = 1;
-        if (configCase["obs"][i]["every_X"])
+        if (configCase["obs"][i]["every_X"].IsDefined())
             every_X = (int)configCase["obs"][i]["every_X"].as<double>();
         observations[i] = Observation(R, every_X, x0);
     }
+
+    /// Set up Eigen output formats
+    IOFormat singleLine(StreamPrecision, DontAlignCols, ",\t", ";\t", "", "", "[", "]");
+    IOFormat csv(FullPrecision, DontAlignCols, ",", ",", "", "", "", "");
+
+    /// Set up input/output files
+    ofstream ofile;
+    ofile.open("data.csv", ios::trunc);
+    ofstream GT_ofile;
+    GT_ofile.open("GT_data.csv", ios::trunc);
+    ifstream GT_ifile;
+    bool GT_from_file = config["GT_file"].IsDefined();
+    if (GT_from_file) GT_ifile.open(config["GT_file"].as<string>());
+
+    /// Set up random
+    int seed = (int)config["seed"].as<double>();
+    if (seed == -1) seed = time(NULL);
+    srand(seed);
+
+    /// Add state and observation functions to the kalman library
     int use_R2_every_x_steps = 0;
     double max_steering_angle = 0;
     switch (testCaseIndex)
@@ -110,7 +115,7 @@ int main(int argc, char* argv[])
     /// Initialize noise generators for v and w
     normal_random_variable v{Q};
     normal_random_variable zero_noise{MatrixXd::Zero(N, N)};
-
+    
     /// Start simulation
     VectorXd ground_truth = x0;
     for (int i = 1; i <= (int)T / dt; i++)
@@ -122,11 +127,13 @@ int main(int argc, char* argv[])
             u(2) = clamp(u(2), -max_steering_angle, max_steering_angle);
         }
         /// Simulate the movement of ground truth with added noise.
-        integrate(dt, f.state_transition_function, ground_truth, u, v);
+        if (GT_from_file)
+            ground_truth = vecFromCSV(GT_ifile);
+        else
+            integrate(dt, f.state_transition_function, ground_truth, u, v);
 
         /// Call kalman prediction step.
-        if (!only_ground_truth)
-            f.predict(u, Q);
+        if (!only_ground_truth) f.predict(u, Q);
 
         /// Iterate through all observations
         for (int iObs = 0; iObs < nObs; iObs++)
@@ -138,14 +145,15 @@ int main(int argc, char* argv[])
             /// Get observation from ground truth
             VectorXd z;
             if (testCaseIndex != 3)
-                f.observation_function(ground_truth);
+                z = f.observation_function(ground_truth);
             else
             {
                 /// On the vehicle test case, approximate velocity from pose diff
                 VectorXd vars_dot =
                     (ground_truth.head(N / 2) - obs.truth_prev.head(N / 2)) / (dt * obs.every_x);
-                /// An then transform it to local reference
+                /// And then transform it to local reference
                 double th = obs.truth_prev(2);
+                z = VectorXd(3);
                 z << vars_dot(0) * cos(th) + vars_dot(1) * sin(th),  // Vn
                     -vars_dot(0) * sin(th) + vars_dot(1) * cos(th),  // Ve
                     vars_dot(2);                                     // th_dot
@@ -155,7 +163,9 @@ int main(int argc, char* argv[])
             /// Add noise to the observation
             z += obs.w();
 
-            if (testCaseIndex == 3)
+            if (testCaseIndex != 3)
+                obs.x.head(N / 2) = z;
+            else
             {
                 /// On the vehicle test case, undo the previous transformation
                 double th = obs.x(2);
@@ -163,12 +173,9 @@ int main(int argc, char* argv[])
                 vars_dot << z(0) * cos(th) - z(1) * sin(th), z(0) * sin(th) + z(1) * cos(th), z(2);
                 obs.x.head(N / 2) += vars_dot * (dt * obs.every_x);
             }
-            else
-                obs.x.head(N / 2) = z;
 
             /// Call kalman update step
-            if (!only_ground_truth)
-                f.update(z, obs.R);
+            if (!only_ground_truth) f.update(z, obs.R);
 
             observations[iObs] = obs;
         }
@@ -179,13 +186,16 @@ int main(int argc, char* argv[])
             cout << "isnan i=" << i << endl;
             return 0;
         }
-        file << ground_truth.head(2).format(csv) << ",";
-        file << nObs << ",";
+        ofile << ground_truth.head(2).format(csv) << ",";
+        ofile << nObs << ",";
         for (int iObs = 0; iObs < nObs; iObs++)
-            file << observations[iObs].x.head(2).format(csv) << ",";
-        file << f.getx().head(2).format(csv) << ",";
-        file << f.getP().topLeftCorner(2, 2).format(csv) << endl;
+            ofile << observations[iObs].x.head(2).format(csv) << ",";
+        ofile << f.getx().head(2).format(csv) << ",";
+        ofile << f.getP().topLeftCorner(2, 2).format(csv) << endl;
+        GT_ofile << ground_truth.format(csv) << endl;
     }
-    file.close();
+    ofile.close();
+    GT_ofile.close();
+    if (GT_from_file) GT_ifile.close();
     return 0;
 }

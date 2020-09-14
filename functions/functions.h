@@ -12,6 +12,7 @@
 #include <ctime>       //Time
 #include <functional>  //Functions as parameters
 #include "../multivar_noise.h"
+#include "yaml-cpp/yaml.h"
 
 using namespace std;
 using namespace Eigen;
@@ -52,4 +53,8 @@ void integrate(double dt,
                const VectorXd& u,
                const normal_random_variable& v);
 double fRand(double fMin, double fMax);
+
+VectorXd vecFromYAML(const YAML::Node& node);
+
+VectorXd vecFromCSV(istream& file);
 #endif  // FUSION_VISO2_IMU_FUNCTIONS_H

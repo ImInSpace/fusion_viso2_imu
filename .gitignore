@@ -7,7 +7,7 @@ build/*
 
 *autobuild-stamp
 
-/data.csv
+/*.csv
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/matlab
