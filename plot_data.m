@@ -1,5 +1,12 @@
 %close all
-system('cmake-build-debug\test_fusion_viso2_imu.exe 3 0');
+figure()
+%for seed=1:9
+%addpath(genpath('third-party/yamlmatlab'))
+%yamls=yaml.ReadYaml('config.yaml');
+%yamls.seed=seed;
+%yaml.WriteYaml('config2.yaml',yamls);
+%system('cmake-build-debug\test_fusion_viso2_imu.exe 3 0 config2.yaml');
+system('cmake-build-debug\test_fusion_viso2_imu.exe 2 0');
 X=csvread("data.csv");
 tx=X(:,1); ty=X(:,2);
 nObs=X(1,3);
@@ -7,7 +14,7 @@ ox=X(:,4:2:(2+2*nObs)); oy=X(:,5:2:(3+2*nObs));
 kx=X(:,4+2*nObs); ky=X(:,5+2*nObs);
 Pk=reshape(X(:,end-3:end).',[2 2 size(X,1)]);
 
-figure()
+%subplot(3,3,seed)
 hold on
 scatter(tx(1),ty(1),30,'r');
 legend_text={'start'};
@@ -26,7 +33,9 @@ if nObs==1
 end
 lgd = legend(legend_text);
 lgd.Location='Best';
-
+%title(['Seed ' num2str(seed)])
+%drawnow()
+%end
 return
 shadow=polyshape();
 for i=1:size(X,1)
