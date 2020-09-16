@@ -53,7 +53,7 @@ exec_and_plot([2 1 3 4])
 
 config.testCase{tc}.obs(1:2) = configObs(1:2);
 
-for i=1:nObs
+for i=1:2
     config.testCase{tc}.obs{i}=rmfield(config.testCase{tc}.obs{i},'to_file');
     config.testCase{tc}.obs{i}.from_file=obs_files{i};
 end

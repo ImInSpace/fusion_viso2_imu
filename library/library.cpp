@@ -1,6 +1,9 @@
 #include "library.h"
 #include <iostream>
 
+/// Continuous EKF with discrete time measurements:
+/// See: https://en.wikipedia.org/wiki/Extended_Kalman_filter#Discrete-time_measurements
+
 double Fusion::predict(const VectorXd& u, const MatrixXd& Q)
 {
     /** Compute dt **/
