@@ -20,16 +20,17 @@ struct normal_random_variable
     {
         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigenSolver(covar);
         transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseSqrt().asDiagonal();
+        gen = std::mt19937{std::random_device{}()};
     }
 
     Eigen::VectorXd mean;
     Eigen::MatrixXd transform;
 
-    Eigen::VectorXd operator()() const
-    {
-        static std::mt19937 gen{std::random_device{}()};
-        static std::normal_distribution<> dist;
+    std::mt19937 gen;
 
+    Eigen::VectorXd operator()()
+    {
+        static std::normal_distribution<> dist;
         return mean + transform * Eigen::VectorXd{mean.size()}.unaryExpr([&](auto x) {
             return dist(gen);
         });

@@ -45,7 +45,7 @@ struct ode
     {
     }
 
-    void operator()(state_type const& x, state_type& dxdt, double t) const { dxdt = f(x, u) + v(); }
+    void operator()(state_type const& x, state_type& dxdt, double t) { dxdt = f(x, u) + v(); }
 };
 void integrate(double dt,
                const function<VectorXd(VectorXd const&, VectorXd const&)>& f,
