@@ -36,22 +36,22 @@ struct ode
 {
     function<VectorXd(VectorXd const&, VectorXd const&)> f;
     VectorXd u;
-    normal_random_variable v;
+    normal_random_variable* v;
 
     ode(function<VectorXd(VectorXd const&, VectorXd const&)> f,
         VectorXd u,
-        normal_random_variable v)
-        : f(move(f)), u(move(u)), v(move(v))
+        normal_random_variable* v)
+        : f(move(f)), u(move(u)), v(v)
     {
     }
 
-    void operator()(state_type const& x, state_type& dxdt, double t) { dxdt = f(x, u) + v(); }
+    void operator()(state_type const& x, state_type& dxdt, double t) const { dxdt = f(x, u) + v->operator()(); }
 };
 void integrate(double dt,
                const function<VectorXd(VectorXd const&, VectorXd const&)>& f,
                VectorXd& x,
                const VectorXd& u,
-               const normal_random_variable& v);
+               normal_random_variable& v);
 double fRand(double fMin, double fMax);
 
 VectorXd vecFromYAML(const YAML::Node& node);

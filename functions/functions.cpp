@@ -117,9 +117,9 @@ void integrate(double dt,
                const function<VectorXd(VectorXd const&, VectorXd const&)>& f,
                VectorXd& x,
                const VectorXd& u,
-               const normal_random_variable& v)
+               normal_random_variable& v)
 {
-    integrate_const(stepper2, ode(f, u, v), x, 0.0, dt, dt / 100);
+    integrate_const(stepper2, ode(f, u, &v), x, 0.0, dt, dt / 100);
 }
 
 double fRand(double fMin, double fMax)

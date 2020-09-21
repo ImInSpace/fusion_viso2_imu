@@ -24,7 +24,9 @@ h=0.3;          %CG to ground
 g=9.81;         %gravity     
 mu=0.85;        %friction coeff
 c=20000;        %cornering stiffness
+p=[m I a b h g mu c].';
 syms m I a b h g mu c
+P=[m I a b h g mu c].';
 %% Segel Lateral Force Model
 ignore_lateral_force=0;
 if ~ignore_lateral_force

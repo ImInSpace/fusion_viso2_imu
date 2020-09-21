@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
     {
         MatrixXd R = vecFromYAML(configCase["obs"][i]["Rd"]).asDiagonal();
         R *= configCase["obs"][i]["Rm"].as<double>();
-        R = R.transpose() * R;  // Make R positive semi-definite
+        R = R.transpose().eval() * R;  // Make R positive semi-definite
         int every_X = 1;
         if (configCase["obs"][i]["every_X"].IsDefined())
             every_X = (int)configCase["obs"][i]["every_X"].as<double>();
@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
     }
 
     /// Make Q into positive semi-definite matrix
-    Q = Q.transpose() * Q;
+    Q = Q.transpose().eval() * Q;
 
     /// Initialize noise generators for v and w
     normal_random_variable v{Q};
