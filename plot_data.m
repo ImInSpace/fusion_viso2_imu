@@ -6,7 +6,7 @@ figure()
 %yamls.seed=seed;
 %yaml.WriteYaml('config2.yaml',yamls);
 %system('cmake-build-debug\test_fusion_viso2_imu.exe 3 0 config2.yaml');
-system('cmake-build-debug\test_fusion_viso2_imu.exe 2 0');
+system('cmake-build-debug\test_fusion_viso2_imu.exe 3 0 config.yaml');
 X=csvread("data.csv");
 tx=X(:,1); ty=X(:,2);
 nObs=X(1,3);
@@ -46,7 +46,11 @@ shplot = plot(shadow,'FaceColor','b',...
             'LineStyle','--',...
             'FaceAlpha',.2,...
             'EdgeAlpha',.5);
-legend start ground\_truth observations kalman kalman\_uncertainty
+        
+legend_text{end+1}='kalman\_uncertainty';
+lgd = legend(legend_text);
+lgd.Location='Best';
+return
 %{
 Qo=cov(ox-tx,oy-ty);
 Qk=cov(kx-tx,ky-ty);

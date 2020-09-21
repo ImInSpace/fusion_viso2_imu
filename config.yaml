@@ -1,11 +1,11 @@
 ---
 seed: -1
-#GT_from_file: vehicle_data/GT.csv
-#U_from_file: vehicle_data/U.csv
+GT_to_file: vehicle_data/GT.csv
+U_to_file: vehicle_data/U.csv
 testCase:
 - # constant speed
   N: 4
-  dt: 0.03
+  dt: 0.01
   T: 1.0
   x0: [0, 0, 1, 0]
   Qd: [1, 1, 1, 1]
@@ -30,20 +30,19 @@ testCase:
   u: [0, 0, 0, 0]
 - # Vehicle
   N: 6
-  dt: 0.3
+  dt: 0.1
   T: 100
   x0: [0, 0, 0, 1, 0, 0]
   Qd: [0, 0, 0, 1, 1, 1]
-  Qm: .5
+  Qm: 1
   obs:
     - Rd: [1, 1, 1]
       Rm: .05
-#      from_file: vehicle_data/IMU.csv
+      to_file: vehicle_data/IMU.csv
     -
       Rd: [1, 1, 1]
-      Rm: .005
+      Rm: .0025
       every_X: 10
-#      from_file: vehicle_data/VISUAL.csv
-  Rm: .05
+      to_file: vehicle_data/VISUAL.csv
   u: [0, 0, 0]
   max_steering_angle: 0.174533

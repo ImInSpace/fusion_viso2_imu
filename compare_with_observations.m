@@ -5,6 +5,7 @@ u_file = 'vehicle_data/U.csv';
 obs_files = {'vehicle_data/IMU.csv','vehicle_data/VISUAL.csv'};
 
 tc=3;
+axes=[];
 
 config=yaml.ReadYaml('config.yaml');
 
@@ -28,7 +29,7 @@ config.testCase{tc}.obs(:)=[];
 
 
 yaml.WriteYaml('config2.yaml',config);
-subplot(2,2,1);
+axes(end+1)=subplot(2,2,1);
 exec_and_plot();
 
 
@@ -40,13 +41,13 @@ config.U_from_file=u_file;
 
 config.testCase{tc}.obs(1) = configObs(1);
 yaml.WriteYaml('config2.yaml',config);
-subplot(2,2,3);
+axes(end+1)=subplot(2,2,3);
 exec_and_plot()
 
 
 config.testCase{tc}.obs(1) = configObs(2);
 
-subplot(2,2,2);
+axes(end+1)=subplot(2,2,2);
 
 yaml.WriteYaml('config2.yaml',config);
 exec_and_plot([2 1 3 4])
@@ -59,8 +60,10 @@ for i=1:2
 end
 
 yaml.WriteYaml('config2.yaml',config);
-subplot(2,2,4);
+axes(end+1)=subplot(2,2,4);
 exec_and_plot()
+
+linkaxes(axes,'xy')
 
 
 function exec_and_plot(obs_idx)
