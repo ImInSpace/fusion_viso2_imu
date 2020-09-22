@@ -106,7 +106,6 @@ int main(int argc, char* argv[])
     srand(seed);
 
     /// Add state and observation functions to the kalman library
-    int use_R2_every_x_steps = 0;
     double max_steering_angle = 0;
     switch (testCaseIndex)
     {

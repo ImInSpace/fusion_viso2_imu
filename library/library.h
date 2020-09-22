@@ -138,14 +138,7 @@ class Fusion
 
         ode(Fusion* f, VectorXd u, MatrixXd Q) : f(f), u(move(u)), Q(move(Q)) {}
 
-        void operator()(state_type const& pair, state_type& dpairdt, double t) const
-        {
-            int N = pair.rows();
-            dpairdt = state_type(N, N + 1);
-            dpairdt.col(0) = f->state_transition_function(pair.col(0), u);
-            MatrixXd F = f->state_transition_jacobian(pair.col(0), u);
-            dpairdt.rightCols(N) = F * pair.rightCols(N) + pair.rightCols(N) * F.transpose() + Q;
-        }
+        void operator()(state_type const& pair, state_type& dpairdt, double t) const;
     };
 };
 
