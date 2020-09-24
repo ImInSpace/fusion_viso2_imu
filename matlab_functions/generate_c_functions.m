@@ -10,17 +10,17 @@ B=jacobian(F,U);
 %AdBd=expm([J B;zeros(size(B)).' zeros(size(B,2))]*dt);
 %A=AdBd(1:size(J,1),1:size(J,2));
 %B=AdBd(1:size(B,1),end-size(B,2)+1:end);
-A=(eye(N)+J*dt);
-B=B*dt;
+Ad=(eye(N)+J*dt);
+Bd=B*dt;
 
 figure();
-subplot(2,2,1);
+subplot(2,3,1);
 latex_show('X',X);
-subplot(2,2,3);
+subplot(2,3,4);
 latex_show('U',U);
-subplot(2,2,2);
+subplot(2,3,[2 3]);
 latex_show('f',F);
-subplot(2,2,4);
+subplot(2,3,[5 6]);
 latex_show('h',h);
 
 %% Check controllability and observability

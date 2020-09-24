@@ -12,10 +12,10 @@ N=length(X);
 %% Input declaration
 syms V_n          %Normal Speed
 syms V_e          %Lateral Speed
-syms delta           %Steering angle
+syms theta_dot    %Steering angle
 
 U=[V_n;V_e;delta];
-Us=[1;5000;5*3.14/180];
+Us=[1;5000;0];
 
 %% Parameter declaration
 m=1292.2;       %Vehicle mass
@@ -33,7 +33,7 @@ P=[m I a b h g mu c].';
 %% ODE definition
 F= [V_n*cos(theta)-V_e*sin(theta);
     V_n*sin(theta)+V_e*cos(theta); 
-    V_n*delta/(a+b); 
+    theta_dot; 
     0;
     0;
     0
