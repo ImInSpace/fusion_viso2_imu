@@ -7,6 +7,7 @@ syms Ve         %lateral velocity
 syms Vn         %longitudinal velocity
 X=[x;y;th;Vn;Ve;th_dot];
 Xs=[0;0;0;0;0;1];
+N=length(X);
 
 %% Input declaration
 syms Pf          %Force to front tyres
@@ -61,54 +62,5 @@ F= [Vn*cos(th)-Ve*sin(th);     %x=X
 h=[Vn;     %x=X
    Ve;     %y=Y
    th_dot];
-%h=[Ve+Vn y th];
-%vpa(subs(F,[U;X],[Us;Xs]),3)
-%return
-%F=simplify(F);
-J=jacobian(F,X);
-H=jacobian(h,X);
-B=jacobian(F,U);
-%J=simplify(J);
 
-%% Print as c code
-
-warning off all
-print_vec(F,'f',X,U);
-print_mat(J,'J',X,U);
-print_vec(h,'h',X,U);
-print_mat(H,'H',X,U);
-
-function print_vec(F,name,X,U)
-    syms x(t) u(t)
-    F=subs(F,X,x(0:length(X)-1).');
-    F=subs(F,U,u(0:length(U)-1).');
-    fprintf("%s << ",name);
-    for i=1:length(F)
-        Fi=ccode(F(i));
-        Fi=regexprep(Fi,'  t0 = ','');
-        Fi=regexprep(Fi,';','');
-        Fi=regexprep(Fi,'.0)',')');
-        if(i==length(F))
-            fprintf('%s;\n\n',Fi)
-        else
-            fprintf('%s,\n',Fi)
-        end
-    end
-end
-function print_mat(J,name,X,U)
-    syms x(t) u(t)
-    J=subs(J,X,x(0:length(X)-1).');
-    J=subs(J,U,u(0:length(U)-1).');
-    for i=1:size(J,1)
-        for j=1:size(J,2)
-            if J(i,j)~=0
-                Jij=ccode(J(i,j));
-                Jij=regexprep(Jij,'  t0 = ','');
-                Jij=regexprep(Jij,';','');
-                Jij=regexprep(Jij,'.0)',')');
-                fprintf('%s(%i,%i)=%s;\n',name,i-1,j-1,Jij)
-            end
-        end
-    end
-    fprintf('\n');
-end
+generate_c_functions(F,h,X,U)

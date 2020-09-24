@@ -12,5 +12,6 @@ F=[X(3);
 J=jacobian(F,X);
 r1_s=sym('r1');
 r2_s=sym('r2');
+
 F=subs(F,[r1 r2],[r1_s r2_s])
 J=subs(J,[r1 r2],[r1_s r2_s])
