@@ -27,7 +27,7 @@ MatrixXd RTBP_state_transition_jacobian(const VectorXd& x, const VectorXd& u)
     J.bottomRightCorner(2, 2) << 0, 2, -2, 0;
 
     return J;
-};
+}
 
 VectorXd RTBP_state_transition_function(const VectorXd& x, const VectorXd& u)
 {
@@ -44,7 +44,7 @@ VectorXd RTBP_state_transition_function(const VectorXd& x, const VectorXd& u)
     f(3) = x(1) - 2 * x(2) + (x(1) * (mu - 1)) / pow(r1, 3) - (x(1) * mu) / pow(r2, 3);
 
     return f;
-};
+}
 
 VectorXd vehicle_state_transition_function(const VectorXd& x, const VectorXd& u)
 {
@@ -64,7 +64,7 @@ VectorXd vehicle_state_transition_function(const VectorXd& x, const VectorXd& u)
         (a * c * (u(2) - (x(4) + a * x(5)) / x(3)) + (b * c * (x(4) - b * x(5))) / x(3)) / I;
 
     return f;
-};
+}
 
 MatrixXd vehicle_state_transition_jacobian(const VectorXd& x, const VectorXd& u)
 {
@@ -98,7 +98,7 @@ MatrixXd vehicle_state_transition_jacobian(const VectorXd& x, const VectorXd& u)
     J(5, 4) = -((a * c) / x(3) - (b * c) / x(3)) / I;
     J(5, 5) = -(((a * a) * c) / x(3) + ((b * b) * c) / x(3)) / I;
     return J;
-};
+}
 
 VectorXd vehicle_observation_function(const VectorXd& x) { return x.tail(3); }
 

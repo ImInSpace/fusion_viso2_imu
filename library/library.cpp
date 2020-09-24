@@ -4,7 +4,7 @@
 /// Continuous EKF with discrete time measurements:
 /// See: https://en.wikipedia.org/wiki/Extended_Kalman_filter#Discrete-time_measurements
 
-double Fusion::predict(const VectorXd& u, const MatrixXd& Q)
+double ContinuousEKF::predict(const VectorXd& u, const MatrixXd& Q)
 {
     /** Compute dt **/
     double dt = getDt();
@@ -29,7 +29,7 @@ double Fusion::predict(const VectorXd& u, const MatrixXd& Q)
     return dt;
 }
 
-void Fusion::update(const VectorXd& z, const MatrixXd& R)
+void ContinuousEKF::update(const VectorXd& z, const MatrixXd& R)
 {
     /** Check input size **/
     assert(z.rows() == N / 2 && R.cols() == N / 2 && R.rows() == N / 2);
@@ -45,8 +45,9 @@ void Fusion::update(const VectorXd& z, const MatrixXd& R)
     x = x + K * y;
     P = (I(N) - K * H) * P;
 }
-void Fusion::ode::operator()(const Fusion::state_type& pair,
-                             Fusion::state_type& dpairdt,
+
+void ContinuousEKF::ode::operator()(const ContinuousEKF::state_type& pair,
+                             ContinuousEKF::state_type& dpairdt,
                              double t) const
 {
     int N = pair.rows();

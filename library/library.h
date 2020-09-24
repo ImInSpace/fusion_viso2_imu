@@ -1,8 +1,8 @@
 #ifndef FUSION_VISO2_IMU_LIBRARY_H
 #define FUSION_VISO2_IMU_LIBRARY_H
 
+#include <Eigen/Dense>  //Matrices
 #include <boost/config/warning_disable.hpp>
-#include <Eigen/Dense>                                            //Matrices
 #include <boost/numeric/odeint.hpp>                               //Integrate
 #include <boost/numeric/odeint/algebra/vector_space_algebra.hpp>  //to use Matrices inside odeint
 #include <boost/numeric/odeint/stepper/runge_kutta_dopri5.hpp>
@@ -13,7 +13,7 @@ using namespace std;
 using namespace Eigen;
 using namespace boost::numeric::odeint;
 
-class Fusion
+class ContinuousEKF
 {
   protected:
     /** State size **/
@@ -47,18 +47,19 @@ class Fusion
     static MatrixXd I(int N) { return MatrixXd::Identity(N, N); }
 
   public:
-    /** Constructor for Fusion
+    /** Constructor for ContinuousEKF
      * \param N size of the state vector.
      * \param x initial state of the kalman prediction. Default is zero.
      * \param P initial covariance matrix for the kalman prediction. Default is 1000*Identity.
      */
-    Fusion(int N, VectorXd x, MatrixXd P) : N(N), t(clock()), x(move(x)), P(move(P)){};
+    ContinuousEKF(int N, VectorXd x, MatrixXd P) : N(N), t(clock()), x(move(x)), P(move(P)){};
 
-    explicit Fusion(int N, VectorXd x) : Fusion(N, move(x), 1000 * MatrixXd::Identity(N, N)){};
+    explicit ContinuousEKF(int N, VectorXd x)
+        : ContinuousEKF(N, move(x), 1000 * MatrixXd::Identity(N, N)){};
 
-    explicit Fusion(int N) : Fusion(N, VectorXd::Zero(N)){};
+    explicit ContinuousEKF(int N) : ContinuousEKF(N, VectorXd::Zero(N)){};
 
-    ~Fusion() = default;
+    ~ContinuousEKF() = default;
 
     /** Does the predict section of the kalman filter.
      * \param u input.
@@ -92,34 +93,37 @@ class Fusion
     /** State transition function f: x'=f(x,u).
      * Default f is x_dot=u+[x3;x4;0;0] (Constant velocity)
      */
-    function<VectorXd(VectorXd const&, VectorXd const&)> state_transition_function =
-        [](VectorXd _x, VectorXd _u) {
-            int _N = _x.size();
-            VectorXd f = _u;
-            f.head(_N / 2) += _x.tail(_N / 2);
-            return f;
-        };
+    State_transition_function state_transition_function = [](const VectorXd& _x,
+                                                             const VectorXd& _u) {
+        int _N = _x.size();
+        VectorXd f = _u;
+        f.head(_N / 2) += _x.tail(_N / 2);
+        return f;
+    };
 
+    typedef function<MatrixXd(VectorXd const&, VectorXd const&)> State_transition_jacobian;
     /** Jacobian of state_transition_function **/
-    function<MatrixXd(VectorXd const&, VectorXd const&)> state_transition_jacobian =
-        [](VectorXd _x, VectorXd _u) {
-            int _N = _x.size();
-            MatrixXd F(_N, _N);
-            F << Z(_N / 2), I(_N / 2), Z(_N / 2), Z(_N / 2);
-            return F;
-        };
+    State_transition_jacobian state_transition_jacobian = [](const VectorXd& _x,
+                                                             const VectorXd& _u) {
+        int _N = _x.size();
+        MatrixXd F(_N, _N);
+        F << Z(_N / 2), I(_N / 2), Z(_N / 2), Z(_N / 2);
+        return F;
+    };
 
+    typedef function<VectorXd(VectorXd)> Observation_function;
     /** observation function h: z=h(x).
      * Default is to only observe first half of x
      */
-    function<VectorXd(VectorXd)> observation_function = [](VectorXd _x) {
+    Observation_function observation_function = [](const VectorXd& _x) {
         int _N = _x.size();
         VectorXd h = _x.head(_N / 2);
         return h;
     };
 
+    typedef function<MatrixXd(VectorXd const&)> Observation_jacobian;
     /** Jacobian of the observation function **/
-    function<MatrixXd(VectorXd const&)> observation_jacobian = [](VectorXd _x) {
+    Observation_jacobian observation_jacobian = [](const VectorXd& _x) {
         // Jacobian of above observation function
         int _N = _x.size();
         MatrixXd H(_N / 2, _N);
@@ -132,11 +136,11 @@ class Fusion
     runge_kutta_dopri5<state_type, double, state_type, double, vector_space_algebra> stepper;
     struct ode
     {
-        Fusion* f;
+        ContinuousEKF* f;
         VectorXd u;
         MatrixXd Q;
 
-        ode(Fusion* f, VectorXd u, MatrixXd Q) : f(f), u(move(u)), Q(move(Q)) {}
+        ode(ContinuousEKF* f, VectorXd u, MatrixXd Q) : f(f), u(move(u)), Q(move(Q)) {}
 
         void operator()(state_type const& pair, state_type& dpairdt, double t) const;
     };

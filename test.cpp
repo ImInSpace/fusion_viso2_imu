@@ -30,6 +30,7 @@ struct Observation
     bool to_file = false;
 };
 
+
 int main(int argc, char* argv[])
 {
     /// Input parameters (from argv)
@@ -51,8 +52,7 @@ int main(int argc, char* argv[])
     int N = (int)configCase["N"].as<double>();
     double dt = configCase["dt"].as<double>();
     double T = configCase["T"].as<double>();
-    Fusion f(N);
-    f.setConstantDt(dt);
+
     VectorXd x0 = vecFromYAML(configCase["x0"]);
     VectorXd u = vecFromYAML(configCase["u"]);
     MatrixXd Q = vecFromYAML(configCase["Qd"]).asDiagonal();
@@ -101,34 +101,48 @@ int main(int argc, char* argv[])
     }
 
     /// Set up random
-    int seed = (int)config["seed"].as<double>();
-    if (seed == -1) seed = time(NULL);
+    int seed = time(NULL);
+    if (config["seed"].IsDefined()) seed = (int)config["seed"].as<double>();
     srand(seed);
 
     /// Add state and observation functions to the kalman library
+    ContinuousEKF ekf(N);
+    ekf.setConstantDt(dt);
     double max_steering_angle = 0;
+    ContinuousEKF::State_transition_function f;
     switch (testCaseIndex)
     {
         case 1:  /// constant_movement
+            f = ekf.state_transition_function;
             break;
         case 2:  /// RTBP
-            f = Fusion(N, x0, MatrixXd::Zero(N, N));
-            f.state_transition_function = RTBP_state_transition_function;
-            f.state_transition_jacobian = RTBP_state_transition_jacobian;
+            ekf = ContinuousEKF(N, x0, MatrixXd::Zero(N, N));
+            ekf.state_transition_function = RTBP_state_transition_function;
+            f = RTBP_state_transition_function;
+            ekf.state_transition_jacobian = RTBP_state_transition_jacobian;
             break;
         case 3:  /// Vehicle dynamics
-            f = Fusion(N, x0, MatrixXd::Zero(N, N));
-            f.setConstantDt(dt);
-            f.state_transition_function = vehicle_state_transition_function;
-            f.state_transition_jacobian = vehicle_state_transition_jacobian;
-            f.observation_function = vehicle_observation_function;
-            f.observation_jacobian = vehicle_observation_jacobian;
+            ekf = ContinuousEKF(N, x0, MatrixXd::Zero(N, N));
+            ekf.setConstantDt(dt);
+            ekf.state_transition_function = vehicle_state_transition_function;
+            f = vehicle_state_transition_function;
+            ekf.state_transition_jacobian = vehicle_state_transition_jacobian;
+            ekf.observation_function = vehicle_observation_function;
+            ekf.observation_jacobian = vehicle_observation_jacobian;
             max_steering_angle = configCase["max_steering_angle"].as<double>();
-
+            break;
+        case 4:  /// Vehicle stochastic cloning
+            ekf = ContinuousEKF(N, x0, MatrixXd::Zero(N, N));
+            ekf.setConstantDt(dt);
+            ekf.state_transition_function = vehicle_cloning_state_transition_function;
+            f = vehicle_state_transition_function;
+            ekf.state_transition_jacobian = vehicle_cloning_state_transition_jacobian;
+            ekf.observation_function = vehicle_cloning_observation_function;
+            ekf.observation_jacobian = vehicle_cloning_observation_jacobian;
+            max_steering_angle = configCase["max_steering_angle"].as<double>();
             break;
         default: exit(1);
     }
-
     /// Make Q into positive semi-definite matrix
     Q = Q.transpose().eval() * Q;
 
@@ -152,10 +166,10 @@ int main(int argc, char* argv[])
         if (GT_from_file)
             ground_truth = vecFromCSV(GT_ifile);
         else
-            integrate(dt, f.state_transition_function, ground_truth, u, v);
+            integrate(dt, ekf.state_transition_function, ground_truth, u, v);
 
         /// Call kalman prediction step.
-        if (!only_ground_truth) f.predict(u, Q);
+        if (!only_ground_truth) ekf.predict(u, Q);
 
         /// Iterate through all observations
         for (auto& observation : observations)
@@ -171,7 +185,7 @@ int main(int argc, char* argv[])
             {
                 /// Get observation from ground truth
                 if (testCaseIndex != 3)
-                    z = f.observation_function(ground_truth);
+                    z = ekf.observation_function(ground_truth);
                 else
                 {
                     /// On the vehicle test case, approximate velocity from pose diff
@@ -203,14 +217,14 @@ int main(int argc, char* argv[])
             }
 
             /// Call kalman update step
-            if (!only_ground_truth) f.update(z, observation.R);
+            if (!only_ground_truth) ekf.update(z, observation.R);
 
             /// Print observation to file
             if (observation.to_file) observation.ofile << z.format(csv) << endl;
         }
 
         /// Print information
-        if (isnan(f.getP()(1, 1)))
+        if (isnan(ekf.getP()(1, 1)))
         {
             cout << "isnan i=" << i << endl;
             return 0;
@@ -219,8 +233,8 @@ int main(int argc, char* argv[])
         ofile << nObs << ",";
         for (int iObs = 0; iObs < nObs; iObs++)
             ofile << observations[iObs].x.head(2).format(csv) << ",";
-        ofile << f.getx().head(2).format(csv) << ",";
-        ofile << f.getP().topLeftCorner(2, 2).format(csv) << endl;
+        ofile << ekf.getx().head(2).format(csv) << ",";
+        ofile << ekf.getP().topLeftCorner(2, 2).format(csv) << endl;
         if (GT_to_file) GT_ofile << ground_truth.format(csv) << endl;
         if (U_to_file) U_ofile << u.format(csv) << endl;
     }
