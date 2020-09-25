@@ -32,6 +32,10 @@ class ContinuousEKF
     bool use_constant_dt = false;
     double constant_dt = 0;
 
+    /** Number of integration steps for each predict **/
+    int steps = 100;
+
+  protected:
     /** Returns time to be predicted in a predict step. **/
     double getDt()
     {
@@ -90,6 +94,22 @@ class ContinuousEKF
         use_constant_dt = true;
     }
 
+    void setSteps(int steps) { ContinuousEKF::steps = steps; }
+
+    /** Clone a part of the kalman state, also affects the covariance
+     * Basically, x(to+i)=x(from+i) for 0<=i<size (changing the covariance accordingly)
+     * @param from index where to start copying from
+     * @param to index where to start copying to
+     * @param size number of elements to copy
+     */
+    void stochastic_cloning(int from, int to, int size)
+    {
+        x.segment(to, size) = x.segment(from, size);
+        P.block(to, 0, size, N) = P.block(from, 0, size, N);
+        P.block(0, to, N, size) = P.block(0, from, N, size);
+    }
+
+    typedef function<VectorXd(const VectorXd&, const VectorXd&)> State_transition_function;
     /** State transition function f: x'=f(x,u).
      * Default f is x_dot=u+[x3;x4;0;0] (Constant velocity)
      */

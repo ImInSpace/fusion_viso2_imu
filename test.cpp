@@ -9,6 +9,7 @@
 #include "library/library.h"
 #include "multivar_noise.h"
 #include "yaml-cpp/yaml.h"
+#include <cassert>
 
 using namespace std;
 
@@ -79,17 +80,19 @@ int main(int argc, char* argv[])
     ofstream ofile;
     ofile.open("data.csv", ios::trunc);
     ofstream GT_ofile;
-    bool GT_to_file = config["GT_to_file"].IsDefined();
-    if (GT_to_file) GT_ofile.open(config["GT_to_file"].as<string>(), ios::trunc);
+    bool GT_to_file = configCase["GT_to_file"].IsDefined();
+    if (GT_to_file) GT_ofile.open(configCase["GT_to_file"].as<string>(), ios::trunc);
+    if (GT_to_file) assert(filesystem::exists(configCase["GT_to_file"].as<string>()));
     ifstream GT_ifile;
-    bool GT_from_file = config["GT_from_file"].IsDefined();
-    if (GT_from_file) GT_ifile.open(config["GT_from_file"].as<string>());
+    bool GT_from_file = configCase["GT_from_file"].IsDefined();
+    if (GT_from_file) GT_ifile.open(configCase["GT_from_file"].as<string>());
+    if (GT_from_file) assert(filesystem::exists(configCase["GT_from_file"].as<string>()));
     ofstream U_ofile;
-    bool U_to_file = config["U_to_file"].IsDefined();
-    if (U_to_file) U_ofile.open(config["U_to_file"].as<string>(), ios::trunc);
+    bool U_to_file = configCase["U_to_file"].IsDefined();
+    if (U_to_file) U_ofile.open(configCase["U_to_file"].as<string>(), ios::trunc);
     ifstream U_ifile;
-    bool U_from_file = config["U_from_file"].IsDefined();
-    if (U_from_file) U_ifile.open(config["U_from_file"].as<string>());
+    bool U_from_file = configCase["U_from_file"].IsDefined();
+    if (U_from_file) U_ifile.open(configCase["U_from_file"].as<string>());
     for (int i = 0; i < observations.size(); i++)
     {
         observations[i].to_file = configCase["obs"][i]["to_file"].IsDefined();
@@ -143,6 +146,10 @@ int main(int argc, char* argv[])
             break;
         default: exit(1);
     }
+    /// Setup integrator steps
+    if (configCase["integration_steps"].IsDefined())
+        ekf.setSteps((int)configCase["integration_steps"].as<double>());
+
     /// Make Q into positive semi-definite matrix
     Q = Q.transpose().eval() * Q;
 

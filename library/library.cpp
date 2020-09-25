@@ -20,7 +20,7 @@ double ContinuousEKF::predict(const VectorXd& u, const MatrixXd& Q)
      * TODO: maybe change state to something that permits adaptative step size
      * TODO: if not, add something to manually change the step size instead of just dt/100
      */
-    integrate_const(stepper, ode(this, u, Q), x0, 0.0, dt, dt / 100);
+    integrate_const(stepper, ode(this, u, Q), x0, 0.0, dt, dt / steps);
 
     /** Get variables back from integrator **/
     x = x0.col(0);
