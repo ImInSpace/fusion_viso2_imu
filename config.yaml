@@ -1,7 +1,5 @@
 ---
-seed: -1
-GT_to_file: vehicle_data/GT.csv
-U_to_file: vehicle_data/U.csv
+seed: 1
 testCase:
 - # constant speed
   N: 4
@@ -29,20 +27,37 @@ testCase:
       every_X: 10
   u: [0, 0, 0, 0]
 - # Vehicle
+  GT_to_file: vehicle_data/GT.csv
+  U_to_file: vehicle_data/U.csv
   N: 6
   dt: 0.1
+  integration_steps: 20
   T: 100
   x0: [0, 0, 0, 1, 0, 0]
   Qd: [0, 0, 0, 1, 1, 1]
   Qm: 1
   obs:
     - Rd: [1, 1, 1]
-      Rm: .05
+      Rm: .07
       to_file: vehicle_data/IMU.csv
     -
       Rd: [1, 1, 1]
-      Rm: .0025
-      every_X: 10
+      Rm: .005
+      every_X: 5
       to_file: vehicle_data/VISUAL.csv
   u: [0, 0, 0]
+  max_steering_angle: 0.174533
+- # Vehicle cloning
+  N: 6
+  dt: 0.1
+  T: 100
+  x0: [ 0, 0, 0, 0, 0, 0 ]
+  Qd: [ 1, 1, 1, 0, 0, 0 ]
+  Qm: 1
+  obs:
+    - Rd: [ 1, 1, 1 ]
+      Rm: .0025
+      every_X: 10
+      to_file: vehicle_cloning_data/VISUAL.csv
+  u: [ 1, 0, 0 ]
   max_steering_angle: 0.174533

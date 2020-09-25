@@ -14,7 +14,7 @@ syms V_n          %Normal Speed
 syms V_e          %Lateral Speed
 syms theta_dot    %Steering angle
 
-U=[V_n;V_e;delta];
+U=[V_n;V_e;theta_dot];
 Us=[1;5000;0];
 
 %% Parameter declaration

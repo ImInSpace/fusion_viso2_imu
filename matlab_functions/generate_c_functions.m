@@ -24,16 +24,16 @@ subplot(2,3,[5 6]);
 latex_show('h',h);
 
 %% Check controllability and observability
-C=B;
+C=Bd;
 for i=1:N-1
-    C=[C A^i*B];
+    C=[C Ad^i*Bd];
 end
 if (rank(C)<N)
     warning(sprintf('System is not controllable rank(C)=%i<%i',rank(C),N))
 end
 O=H;
 for i=1:N-1
-    O=[O;H*A^i];
+    O=[O;H*Ad^i];
 end
 if (rank(O)<N)
     warning(sprintf('System is not observable rank(O)=%i<%i',rank(O),N))

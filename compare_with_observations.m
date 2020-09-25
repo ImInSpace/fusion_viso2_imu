@@ -1,4 +1,5 @@
 addpath(genpath('third-party/yamlmatlab'))
+addpath(genpath('matlab_functions'))
 figure('WindowState', 'maximized')
 gt_file = 'vehicle_data/GT.csv';
 u_file = 'vehicle_data/U.csv';
@@ -8,68 +9,86 @@ tc=3;
 axes=[];
 
 config=yaml.ReadYaml('config.yaml');
+configCase=config.testCase{tc};
 
-if isfield(config,'GT_from_file')
-    config=rmfield(config,'GT_from_file');
+
+if isfield(configCase,'GT_from_file')
+    configCase=rmfield(configCase,'GT_from_file');
 end
-if isfield(config,'U_from_file')
-    config=rmfield(config,'U_from_file');
+if isfield(configCase,'U_from_file')
+    configCase=rmfield(configCase,'U_from_file');
 end
-config.GT_to_file=gt_file;
-config.U_to_file=u_file;
+configCase.GT_to_file=gt_file;
+configCase.U_to_file=u_file;
 for i=1:2
-    if isfield(config.testCase{tc}.obs{i},'from_file')
-        config.testCase{tc}.obs{i}=rmfield(config.testCase{tc}.obs{i},'from_file');
+    if isfield(configCase.obs{i},'from_file')
+        configCase.obs{i}=rmfield(configCase.obs{i},'from_file');
     end
-    config.testCase{tc}.obs{i}.to_file=obs_files{i};
+    configCase.obs{i}.to_file=obs_files{i};
 end
 
-configObs=config.testCase{tc}.obs;
-config.testCase{tc}.obs(:)=[];
+configObs=configCase.obs;
+configCase.obs(:)=[];
 
 
+config.testCase{tc}=configCase;
 yaml.WriteYaml('config2.yaml',config);
 axes(end+1)=subplot(2,2,1);
 exec_and_plot();
 
 
-config=rmfield(config,'GT_to_file');
-config=rmfield(config,'U_to_file');
-config.GT_from_file=gt_file;
-config.U_from_file=u_file;
+configCase=rmfield(configCase,'GT_to_file');
+configCase=rmfield(configCase,'U_to_file');
+configCase.GT_from_file=gt_file;
+configCase.U_from_file=u_file;
 
 
-config.testCase{tc}.obs(1) = configObs(1);
+configCase.obs(1) = configObs(1);
+config.testCase{tc}=configCase;
 yaml.WriteYaml('config2.yaml',config);
 axes(end+1)=subplot(2,2,3);
 exec_and_plot()
 
 
-config.testCase{tc}.obs(1) = configObs(2);
+configCase.obs(1) = configObs(2);
 
 axes(end+1)=subplot(2,2,2);
 
+config.testCase{tc}=configCase;
 yaml.WriteYaml('config2.yaml',config);
 exec_and_plot([2 1 3 4])
 
-config.testCase{tc}.obs(1:2) = configObs(1:2);
+configCase.obs(1:2) = configObs(1:2);
 
 for i=1:2
-    config.testCase{tc}.obs{i}=rmfield(config.testCase{tc}.obs{i},'to_file');
-    config.testCase{tc}.obs{i}.from_file=obs_files{i};
+    configCase.obs{i}=rmfield(configCase.obs{i},'to_file');
+    configCase.obs{i}.from_file=obs_files{i};
 end
 
+config.testCase{tc}=configCase;
 yaml.WriteYaml('config2.yaml',config);
 axes(end+1)=subplot(2,2,4);
 exec_and_plot()
 
 linkaxes(axes,'xy')
 
-
 function exec_and_plot(obs_idx)
     if nargin==0
         obs_idx=1:4;
     end
+    exec_and_plot_dets(obs_idx)
+end
+
+
+function exec_and_plot_dets(obs_idx)
+    system('cmake-build-debug\test_fusion_viso2_imu.exe 3 0 config2.yaml');
+    X=csvread("data.csv");
+    Pk=reshape(X(:,end-3:end).',[2 2 size(X,1)]);
+    dets=arrayfun(@(i)det(Pk(:,:,i)),1:size(Pk,3));
+    plot(nthroot(abs(dets),4))
+end
+
+function exec_and_plot_locs(obs_idx)
     system('cmake-build-debug\test_fusion_viso2_imu.exe 3 0 config2.yaml');
     X=csvread("data.csv");
     tx=X(:,1); ty=X(:,2);
