@@ -3,7 +3,9 @@ addpath(genpath('matlab_functions'))
 figure()
 system('cmake-build-debug\test_fusion_viso2_imu.exe 3 0 config.yaml');
 plot_data
-lgd_mix=cellfun(@(l)['vel\_' l], legend_text, 'UniformOutput', false);
+lgd_mix=legend_text;
+filter=contains(legend_text,'kalman');
+lgd_mix(filter)=cellfun(@(l)['vel\_' l], legend_text(filter), 'UniformOutput', false);
 
 dist_traveled=[0;cumsum(sqrt(diff(tx).^2+diff(ty).^2))];
 dist_error=vecnorm([kx-tx ky-ty],2,2);
@@ -19,11 +21,11 @@ legend(lgd_mix)
 
 hLines = findobj(gca,'Type','line');
 for i=1:length(hLines)
-    line_i=hLines(i);
-    if startsWith(line_i.DisplayName,'clo')
-        line_i.LineStyle='--';
-        if ~endsWith(line_i.DisplayName,'kalman')
-            delete(line_i)
+    hLine=hLines(i);
+    if startsWith(hLine.DisplayName,'clo')
+        hLine.LineStyle='--';
+        if ~endsWith(hLine.DisplayName,'kalman')
+            delete(hLine)
         end
     end
 end
@@ -31,9 +33,18 @@ end
 
 hScatters = findobj(gca,'Type','Scatter');
 for i=1:length(hScatters)
-    scatter_i=hScatters(i);
-    if strcmp(scatter_i.DisplayName,'clo\_start')
-        delete(scatter_i)
+    hScatter=hScatters(i);
+    if strcmp(hScatter.DisplayName,'clo\_start')
+        delete(hScatter)
+    end
+end
+
+hPolys=findobj(gca,'Type','Polygon');
+
+for i=1:length(hPolys)
+    hPoly=hPolys(i);
+    if startsWith(hPoly.DisplayName,'vel')
+        hPoly.LineStyle='-';
     end
 end
 
