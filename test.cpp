@@ -1,3 +1,4 @@
+#include <cassert>
 #include <cmath>
 #include <cstdlib>  // for strtol()
 #include <filesystem>
@@ -9,7 +10,6 @@
 #include "library/library.h"
 #include "multivar_noise.h"
 #include "yaml-cpp/yaml.h"
-#include <cassert>
 
 using namespace std;
 
@@ -31,11 +31,10 @@ struct Observation
     bool to_file = false;
 };
 
-
 int main(int argc, char* argv[])
 {
     /// Input parameters (from argv)
-    int testCaseIndex = 3;
+    int testCaseIndex = 4;
     if (argc >= 2) testCaseIndex = strtol(argv[1], nullptr, 10);
 
     bool only_ground_truth = false;
@@ -93,6 +92,8 @@ int main(int argc, char* argv[])
     ifstream U_ifile;
     bool U_from_file = configCase["U_from_file"].IsDefined();
     if (U_from_file) U_ifile.open(configCase["U_from_file"].as<string>());
+    bool U_is_diff =
+        U_from_file and (configCase["U_from_file"].as<string>().find("IMU") != string::npos);
     for (int i = 0; i < observations.size(); i++)
     {
         observations[i].to_file = configCase["obs"][i]["to_file"].IsDefined();
@@ -136,6 +137,7 @@ int main(int argc, char* argv[])
             break;
         case 4:  /// Vehicle stochastic cloning
             ekf = ContinuousEKF(N, x0, MatrixXd::Zero(N, N));
+            ekf.stochastic_cloning(0, 3, 3);
             ekf.setConstantDt(dt);
             ekf.state_transition_function = vehicle_cloning_state_transition_function;
             f = vehicle_state_transition_function;
@@ -163,7 +165,11 @@ int main(int argc, char* argv[])
     {
         /// On the vehicle testcase switch steering angle randomly every 10 steps
         if (U_from_file)
+        {
             u = vecFromCSV(U_ifile);
+            if (U_is_diff)
+                u /= dt;
+        }
         else if (testCaseIndex == 3 and i % 10 == 0)
         {
             u(2) += fRand(-1., 1.) * 5 * EIGEN_PI / 180;  // NOLINT(cert-msc30-c,cert-msc50-cpp)
@@ -173,7 +179,7 @@ int main(int argc, char* argv[])
         if (GT_from_file)
             ground_truth = vecFromCSV(GT_ifile);
         else
-            integrate(dt, ekf.state_transition_function, ground_truth, u, v);
+            integrate(dt, f, ground_truth, u, v);
 
         /// Call kalman prediction step.
         if (!only_ground_truth) ekf.predict(u, Q);
@@ -187,32 +193,44 @@ int main(int argc, char* argv[])
             VectorXd z;
             /// Get observation
             if (observation.from_file)
+            {
                 z = vecFromCSV(observation.ifile);
+                if (testCaseIndex == 3) z /= dt * observation.every_x;
+            }
             else
             {
                 /// Get observation from ground truth
-                if (testCaseIndex != 3)
+                if (testCaseIndex != 3 and testCaseIndex != 4)
                     z = ekf.observation_function(ground_truth);
                 else
                 {
-                    /// On the vehicle test case, approximate velocity from pose diff
+                    /// On the vehicle test case, get pose diff
                     VectorXd vars_dot =
-                        (ground_truth.head(N / 2) - observation.truth_prev.head(N / 2))
-                        / (dt * observation.every_x);
+                        (ground_truth.head(N / 2) - observation.truth_prev.head(N / 2));
                     /// And then transform it to local reference
                     double th = observation.truth_prev(2);
                     z = VectorXd(3);
                     z << vars_dot(0) * cos(th) + vars_dot(1) * sin(th),  // Vn
                         -vars_dot(0) * sin(th) + vars_dot(1) * cos(th),  // Ve
                         vars_dot(2);                                     // th_dot
+
+                    if (testCaseIndex == 3) z /= dt * observation.every_x;
                     observation.truth_prev = ground_truth;
                 }
-
+                /// If not using stochastic cloning divide by dt to get a velocity
                 /// Add noise to the observation
                 z += observation.w();
             }
 
-            if (testCaseIndex != 3)
+            /// Call kalman update step
+            if (!only_ground_truth) ekf.update(z, observation.R);
+
+            if (testCaseIndex == 3) z *= dt * observation.every_x;
+
+            if (testCaseIndex == 4) ekf.stochastic_cloning(0, 3, 3);
+
+            /// Add z to the observation
+            if (testCaseIndex != 3 and testCaseIndex != 4)
                 observation.x.head(N / 2) = z;
             else
             {
@@ -220,11 +238,8 @@ int main(int argc, char* argv[])
                 double th = observation.x(2);
                 VectorXd vars_dot(3);
                 vars_dot << z(0) * cos(th) - z(1) * sin(th), z(0) * sin(th) + z(1) * cos(th), z(2);
-                observation.x.head(N / 2) += vars_dot * (dt * observation.every_x);
+                observation.x.head(N / 2) += vars_dot;
             }
-
-            /// Call kalman update step
-            if (!only_ground_truth) ekf.update(z, observation.R);
 
             /// Print observation to file
             if (observation.to_file) observation.ofile << z.format(csv) << endl;

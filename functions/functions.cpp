@@ -111,6 +111,55 @@ MatrixXd vehicle_observation_jacobian(const VectorXd& x)
     return H;
 }
 
+VectorXd vehicle_cloning_state_transition_function(const VectorXd& x, const VectorXd& u)
+{
+    double a = 1.006;  // CG to front axle
+    double b = 1.534;  // CG to rear axle
+
+    // Construct F
+    VectorXd f(6);
+    f << u(0) * cos(x(2)) - u(1) * sin(x(2)), u(1) * cos(x(2)) + u(0) * sin(x(2)), u(2), 0.0, 0.0,
+        0.0;
+
+    return f;
+};
+
+MatrixXd vehicle_cloning_state_transition_jacobian(const VectorXd& x, const VectorXd& u)
+{
+    // Construct J
+    MatrixXd J = MatrixXd::Zero(6, 6);
+    J(0, 2) = -u(1) * cos(x(2)) - u(0) * sin(x(2));
+    J(1, 2) = u(0) * cos(x(2)) - u(1) * sin(x(2));
+    return J;
+};
+
+VectorXd vehicle_cloning_observation_function(const VectorXd& x)
+{
+    VectorXd h(3);
+    h << cos(x(5)) * (x(0) - x(3)) + sin(x(5)) * (x(1) - x(4)),
+        cos(x(5)) * (x(1) - x(4)) - sin(x(5)) * (x(0) - x(3)), x(2) - x(5);
+
+    return h;
+}
+
+MatrixXd vehicle_cloning_observation_jacobian(const VectorXd& x)
+{
+    MatrixXd H = MatrixXd::Zero(3, 6);
+    H(0, 0) = cos(x(5));
+    H(0, 1) = sin(x(5));
+    H(0, 3) = -cos(x(5));
+    H(0, 4) = -sin(x(5));
+    H(0, 5) = cos(x(5)) * (x(1) - x(4)) - sin(x(5)) * (x(0) - x(3));
+    H(1, 0) = -sin(x(5));
+    H(1, 1) = cos(x(5));
+    H(1, 3) = sin(x(5));
+    H(1, 4) = -cos(x(5));
+    H(1, 5) = -cos(x(5)) * (x(0) - x(3)) - sin(x(5)) * (x(1) - x(4));
+    H(2, 2) = 1.0;
+    H(2, 5) = -1.0;
+    return H;
+}
+
 runge_kutta_dopri5<state_type, double, state_type, double, vector_space_algebra> stepper2;
 
 void integrate(double dt,
