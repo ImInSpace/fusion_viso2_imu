@@ -39,8 +39,8 @@ F= [V_n*cos(theta)-V_e*sin(theta);
     0
   ]; %a=lf, b=lr
 
-h=[ cos(theta_s)*(x - x_s) - sin(theta_s)*(y - y_s);
-    sin(theta_s)*(x - x_s) + cos(theta_s)*(y - y_s);
+h=[ cos(theta_s)*(x - x_s) + sin(theta_s)*(y - y_s);
+   -sin(theta_s)*(x - x_s) + cos(theta_s)*(y - y_s);
 	theta - theta_s];
 
 

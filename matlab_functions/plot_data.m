@@ -1,12 +1,11 @@
 %close all
-figure()
+%figure()
 %for seed=1:9
 %addpath(genpath('third-party/yamlmatlab'))
 %yamls=yaml.ReadYaml('config.yaml');
 %yamls.seed=seed;
 %yaml.WriteYaml('config2.yaml',yamls);
 %system('cmake-build-debug\test_fusion_viso2_imu.exe 3 0 config2.yaml');
-system('cmake-build-debug\test_fusion_viso2_imu.exe 3 0 config.yaml');
 X=csvread("data.csv");
 tx=X(:,1); ty=X(:,2);
 nObs=X(1,3);
@@ -22,7 +21,12 @@ plot(tx,ty,'r');
 legend_text{end+1}='ground\_truth';
 obs_colors='gcmy';
 for i=1:nObs
-    plot(ox(:,i),oy(:,i),obs_colors(i))
+    li=plot(ox(:,i),oy(:,i),obs_colors(i));
+    if (i==2)
+        li.LineStyle='-';
+        li.Marker='.';
+        li.MarkerSize=10;
+    end
     legend_text{end+1}=['observation ' num2str(i)];
 end
 plot(kx,ky,'b')
@@ -46,7 +50,7 @@ shplot = plot(shadow,'FaceColor','b',...
             'LineStyle','--',...
             'FaceAlpha',.2,...
             'EdgeAlpha',.5);
-        
+
 legend_text{end+1}='kalman\_uncertainty';
 lgd = legend(legend_text);
 lgd.Location='Best';
