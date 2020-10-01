@@ -40,7 +40,7 @@ lgd.Location='Best';
 %title(['Seed ' num2str(seed)])
 %drawnow()
 %end
-%return
+return
 shadow=polyshape();
 for i=1:size(X,1)
     shadow=union(shadow,draw_ellipse([kx(i),ky(i)],Pk(:,:,i)));

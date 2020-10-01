@@ -122,7 +122,7 @@ function exec_and_plot_locs(ax,obs_idx)
     dist_traveled=[0;cumsum(sqrt(diff(tx).^2+diff(ty).^2))];
     dist_error=vecnorm([kx-tx ky-ty],2,2);
     dlm = fitlm(dist_traveled,dist_error,'Intercept',false);
-    title(ax,{sprintf('Kalman Drift: %.1f%%',dlm.Coefficients.Estimate*100),...
+    title(ax,{sprintf('Vel Kalman Drift: %.1f',dist_traveled(end)*dlm.Coefficients.Estimate),...
            sprintf('Final kalman uncertainty: %.5f',nthroot(abs(det(Pk(:,:,end))),4))})
     drawnow()
 end
