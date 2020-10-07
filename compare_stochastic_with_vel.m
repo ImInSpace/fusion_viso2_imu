@@ -1,7 +1,7 @@
 
 addpath(genpath('matlab_functions'))
 addpath(genpath('third-party/yamlmatlab'))
-figure()
+fig=figure();
 
 
 config=yaml.ReadYaml('config.yaml');
@@ -73,8 +73,20 @@ lgd_mix(filter)=cellfun(@(l)['vel\_' l], legend_text(filter), 'UniformOutput', f
 dist_traveled=[0;cumsum(sqrt(diff(tx).^2+diff(ty).^2))];
 dist_error=vecnorm([kx-tx ky-ty],2,2);
 dlm = fitlm(dist_traveled,dist_error,'Intercept',false);
-fprintf('Vel Kalman Drift: %.1f\n',dist_traveled(end)*dlm.Coefficients.Estimate)
-fprintf('Vel Final kalman uncertainty: %.5f\n',nthroot(abs(det(Pk(:,:,end))),4))
+vel_kalman_drift=dist_traveled(end)*dlm.Coefficients.Estimate;
+vel_kalman_uncertainty=nthroot(abs(det(Pk(:,:,end))),4);
+fprintf('Vel Kalman Drift: %.1f\n',vel_kalman_drift)
+fprintf('Vel Final kalman uncertainty: %.5f\n',vel_kalman_uncertainty)
+
+
+dist_error=vecnorm([ox(:,1)-tx oy(:,2)-ty],2,2);
+dlm = fitlm(dist_traveled,dist_error,'Intercept',false);
+imu_drift=dist_traveled(end)*dlm.Coefficients.Estimate;
+
+vis_filt=((vel.obs{2}.every_X-1):vel.obs{2}.every_X:length(tx));
+dist_error=vecnorm([ox(vis_filt,2)-tx(vis_filt) oy(vis_filt,2)-ty(vis_filt)],2,2);
+dlm = fitlm(dist_traveled(vis_filt),dist_error,'Intercept',false);
+vis_drift=dist_traveled(end)*dlm.Coefficients.Estimate;
 
 
 system('cmake-build-debug\test_fusion_viso2_imu.exe 4 0 config2.yaml');
@@ -114,5 +126,9 @@ end
 dist_traveled=[0;cumsum(sqrt(diff(tx).^2+diff(ty).^2))];
 dist_error=vecnorm([kx-tx ky-ty],2,2);
 dlm = fitlm(dist_traveled,dist_error,'Intercept',false);
-fprintf('Clone Kalman Drift: %.1f\n',dist_traveled(end)*dlm.Coefficients.Estimate)
-fprintf('Clone Final kalman uncertainty: %.5f\n',nthroot(abs(det(Pk(:,:,end))),4))
+
+clo_kalman_drift=dist_traveled(end)*dlm.Coefficients.Estimate;
+clo_kalman_uncertainty=nthroot(abs(det(Pk(:,:,end))),4);
+
+fprintf('Clone Kalman Drift: %.1f\n',clo_kalman_drift)
+fprintf('Clone Final kalman uncertainty: %.5f\n',clo_kalman_uncertainty)

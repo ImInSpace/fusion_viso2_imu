@@ -43,7 +43,7 @@ testCase:
     -
       Rd: [1, 1, .5]
       Rm: .005
-      every_X: 100
+      every_X: 10
       to_file: vehicle_data/VISUAL.csv
   u: [0, 0, 0]
   max_steering_angle: 0.174533
