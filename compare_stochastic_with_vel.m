@@ -79,11 +79,11 @@ fprintf('Vel Kalman Drift: %.1f\n',vel_kalman_drift)
 fprintf('Vel Final kalman uncertainty: %.5f\n',vel_kalman_uncertainty)
 
 
-dist_error=vecnorm([ox(:,1)-tx oy(:,2)-ty],2,2);
+dist_error=vecnorm([ox(:,1)-tx oy(:,1)-ty],2,2);
 dlm = fitlm(dist_traveled,dist_error,'Intercept',false);
 imu_drift=dist_traveled(end)*dlm.Coefficients.Estimate;
 
-vis_filt=((vel.obs{2}.every_X-1):vel.obs{2}.every_X:length(tx));
+vis_filt=((vel.obs{2}.every_X):vel.obs{2}.every_X:length(tx));
 dist_error=vecnorm([ox(vis_filt,2)-tx(vis_filt) oy(vis_filt,2)-ty(vis_filt)],2,2);
 dlm = fitlm(dist_traveled(vis_filt),dist_error,'Intercept',false);
 vis_drift=dist_traveled(end)*dlm.Coefficients.Estimate;

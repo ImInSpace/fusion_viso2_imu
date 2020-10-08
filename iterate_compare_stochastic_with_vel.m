@@ -4,7 +4,7 @@ wb=waitbar(0,'Iterating');
 try
     config=yaml.ReadYaml('config.yaml');
     close all
-    N=2;
+    N=10;
     R1s=10.^linspace(log10(0.002),log10(0.2),N);
     R2s=10.^linspace(log10(0.002),log10(0.2),N);
     [R1s,R2s]=meshgrid(R1s,R2s);
@@ -31,7 +31,7 @@ try
         vel_kuncerts(iter)=vel_kalman_uncertainty;
         clo_kdrifts(iter)=clo_kalman_drift;
         clo_kuncerts(iter)=clo_kalman_uncertainty;  
-        %exportgraphics(fig,['iterate_data/' num2str(i) '.pdf'])
+        exportgraphics(fig,['iterate_data/' num2str(iter) '.pdf'])
         close(fig);
         waitbar(iter/(N*N),wb);
         catch e
@@ -51,3 +51,5 @@ catch e
     close(wb);
     rethrow(e)
 end
+copyfile('config_orig.yaml','config.yaml')
+close(wb);
