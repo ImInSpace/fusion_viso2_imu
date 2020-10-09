@@ -4,9 +4,9 @@ wb=waitbar(0,'Iterating');
 try
     config=yaml.ReadYaml('config.yaml');
     close all
-    N=10;
-    R1s=10.^linspace(log10(0.002),log10(0.2),N);
-    R2s=10.^linspace(log10(0.002),log10(0.2),N);
+    N=33;
+    R1s=10.^linspace(log10(0.002),log10(0.5),N);
+    R2s=10.^linspace(log10(0.002),log10(0.5),N);
     [R1s,R2s]=meshgrid(R1s,R2s);
     R1s=R1s(:);
     R2s=R2s(:);
@@ -33,7 +33,7 @@ try
         clo_kuncerts(iter)=clo_kalman_uncertainty;  
         exportgraphics(fig,['iterate_data/' num2str(iter) '.pdf'])
         close(fig);
-        waitbar(iter/(N*N),wb);
+        waitbar(iter/(N*N),wb,sprintf('iterating %i/%i', iter, N*N));
         catch e
             warning('Error catched:')
             warning(e.message)

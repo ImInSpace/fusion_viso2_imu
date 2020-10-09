@@ -1,6 +1,6 @@
 clear 
 %close all
-load iterate_data\100r.mat
+load iterate_data\1000r.mat
 fig=figure;
 axis=gca;
 hold on
@@ -17,7 +17,7 @@ names={'i',...%1
 
 DATA=[(1:iter).' R1s R2s imu_drifts vis_drifts vel_kdrifts, clo_kdrifts, vel_kuncerts clo_kuncerts];
 
-x=6;y=8;filt1=6;filt2=7;
+x=4;y=5;filt1=6;filt2=7;
 
 %filt1=7;filt2=9;x=7;y=9;
 filt=DATA(:,filt1)>=DATA(:,filt2);
