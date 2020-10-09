@@ -6,7 +6,7 @@ F=car1.ConnectivityList;
 V(:,3)=-V(:,3);
 V(:,1)=-V(:,1);
 figure
-p=patch('Vertices',V,'Faces',F,'FaceColor','r');
+pat=patch('Vertices',V,'Faces',F,'FaceColor','r');
 view(3)
 axis equal
 xlabel x
@@ -18,8 +18,10 @@ zlim([0 2])
 camlight
 q=[0 0 .5 .5].'; %using quaternions as JPL (natural order)
                %quaternion=q(4)*+q(1)**i+q(2)**j+q(3)**k
-w=[0;0;1];
-dt=0.1;
+p=[0 0 0];
+w=[pi 0 pi];
+v=[0 0 0];
+dt=0.02;
 q=q/norm(q);
 
 syms w_x w_y w_z
@@ -31,23 +33,26 @@ ex=simplify(ex);
 ex=subs(ex,(- w_x^2 - w_y^2 - w_z^2)^(1/2),norms*i);
 ex=simplify(ex);
 exb=(eye(4)+.25*Omega(ws)*dts)*(eye(4)-.25*Omega(ws)*dts)^-1;
-exb=simplify(exb)
+exb=simplify(exb);
 try
     rosinit;
 end
-r=rosrate(pi/dt);
-for it=1:ceil(2*pi/dt)
+r=rosrate(1/dt);
+for it=1:ceil(2/dt)
+    dq=.5*Omega(w)*dt;
     %q=(eye(4)+.5*Omega(w)*dt)*q;%first order
     %q=(eye(4)-.5*Omega(w)*dt)^-1*q;%inverse
     %q=(eye(4)+.25*Omega(w)*dt)*(eye(4)-.25*Omega(w)*dt)^-1*q;%both
     %q=(eye(4)+.5*Omega(w)*dt+.25*(.5*Omega(w)*dt)^2)*q;%second order
-    %q=expm(.5*Omega(w)*dt)*q;%true
+    q=expm(dq)*q;%true
     %q=q/norm(q);
     R=rot_mat(q);
-    Vr=V*R.';
-    p.set('Vertices',Vr)
+    p=p+v*R.'*dt;
+    pat.set('Vertices',p+V*R.')
     waitfor(r);
 end
+disp(p)
+disp(q.'/norm(q))
 disp(norm(q))
 close all
 
