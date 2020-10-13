@@ -1,8 +1,18 @@
-function latex_show(name,H)
+function latex_show(var1,var2)
+    
+    if nargin==1
+        H=var1;
+        formula=latex(H);
+    else
+        name=var1;
+        H=var2;
+        formula=[name '=' latex(H)];
+    end
+    
     import matlab.net.http.*
     import matlab.net.http.field.*
 
-    formula=[name '=' latex(H)];
+    formula=regexprep(formula,'\\left\((\\\w*) \\right\)','$1');
     formula=replace(formula,'&','%26');
 
     request = RequestMessage( 'POST', ...

@@ -43,10 +43,10 @@ end
 %% Print as c code
 
 warning off all
-print_vec(F,'f',X,U);
-print_mat(J,'J',X,U);
-print_vec(h,'h',X,U);
-print_mat(H,'H',X,U);
+print_vec(F,'f',X,U,1);
+print_mat(J,'J',X,U,1);
+print_vec(h,'h',X,U,1);
+print_mat(H,'H',X,U,1);
 warning on all
 
 

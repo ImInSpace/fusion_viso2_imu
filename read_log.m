@@ -42,9 +42,11 @@ function read_log(logfile)
     for i=ceil(linspace(1,size(T,1),2000))
         while toc<(T.time_microseconds(i)-t0)*10^-6/10
         end
-        R=rotmat(T.quaternion(i),'frame');
+        eul=quat2eul(T.quaternion(i));
+        R=eul2rotm(eul);
+        %R=rotmat(T.quaternion(i),'point');
         P=[T.position_data_0(i) T.position_data_1(i) T.position_data_2(i)];
-        pat.set('Vertices',P+V*R)
+        pat.set('Vertices',P+V*R.')
         drawnow
     end
     

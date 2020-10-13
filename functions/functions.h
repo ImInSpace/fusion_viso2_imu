@@ -38,6 +38,10 @@ VectorXd vehicle_cloning_observation_function(const VectorXd& x);
 
 MatrixXd vehicle_cloning_observation_jacobian(const VectorXd& x);
 
+VectorXd vehicle3_state_transition_function(const VectorXd& x, const VectorXd& u);
+
+MatrixXd vehicle3_state_transition_jacobian(const VectorXd& x, const VectorXd& u);
+
 typedef VectorXd state_type;
 
 struct ode
