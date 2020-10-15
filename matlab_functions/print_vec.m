@@ -6,7 +6,7 @@ function print_vec(J,name,X,U,do_simplify)
     
     fprintf("VectorXd %s = VectorXd::Zero(%i);\n",name,length(J))
     if do_simplify
-        J=simplify(J,100);
+        J=rewrite(simplify(J,100),'cos');
         
         if nargin>2 
             syms x(t) u(t)

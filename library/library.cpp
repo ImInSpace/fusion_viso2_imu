@@ -8,23 +8,25 @@ double ContinuousEKF::predict(const VectorXd& u, const MatrixXd& Q)
 {
     /** Compute dt **/
     double dt = getDt();
+    if (dt>0) {
 
-    /** Join x and P into a single variable (odeint doesn't take tuples) **/
-    MatrixXd x0(N, N + 1);
-    x0.col(0) = x;
-    x0.rightCols(N) = P;
+        /** Join x and P into a single variable (odeint doesn't take tuples) **/
+        MatrixXd x0(N, N + 1);
+        x0.col(0) = x;
+        x0.rightCols(N) = P;
 
-    /** Integrate ode
-     * NOTE: odeint doesn't support adaptative step size for matrices
-     * (https://stackoverflow.com/a/27781777)
-     * TODO: maybe change state to something that permits adaptative step size
-     * TODO: if not, add something to manually change the step size instead of just dt/100
-     */
-    integrate_const(stepper, ode(this, u, Q), x0, 0.0, dt, dt / steps);
+        /** Integrate ode
+         * NOTE: odeint doesn't support adaptative step size for matrices
+         * (https://stackoverflow.com/a/27781777)
+         * TODO: maybe change state to something that permits adaptative step size
+         * TODO: if not, add something to manually change the step size instead of just dt/100
+         */
+        integrate_const(stepper, ode(this, u, Q), x0, 0.0, dt, min(integration_dt,dt));
 
-    /** Get variables back from integrator **/
-    x = x0.col(0);
-    P = x0.rightCols(N);
+        /** Get variables back from integrator **/
+        x = x0.col(0);
+        P = x0.rightCols(N);
+    }
 
     return dt;
 }

@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
         R *= configCase["obs"][i]["Rm"].as<double>();
         /// Make R into positive semi-definite matrix
         R = R.transpose().eval() * R;
-        int every_X = 1; /// Observation occurs every "every_X" steps
+        int every_X = 1; /// Observation occurs every 'every_X' steps
         if (configCase["obs"][i]["every_X"].IsDefined())
             every_X = (int)configCase["obs"][i]["every_X"].as<double>();
         /// Call the constructor, this will also generate the noise generator from R
@@ -94,18 +94,26 @@ int main(int argc, char* argv[])
     bool GT_to_file = configCase["GT_to_file"].IsDefined();
     if (GT_to_file) GT_ofile.open(configCase["GT_to_file"].as<string>(), ios::trunc);
     if (GT_to_file) assert(filesystem::exists(configCase["GT_to_file"].as<string>()));
+
     ifstream GT_ifile;
     bool GT_from_file = configCase["GT_from_file"].IsDefined();
     if (GT_from_file) GT_ifile.open(configCase["GT_from_file"].as<string>());
     if (GT_from_file) assert(filesystem::exists(configCase["GT_from_file"].as<string>()));
+
     ofstream U_ofile;
     bool U_to_file = configCase["U_to_file"].IsDefined();
     if (U_to_file) U_ofile.open(configCase["U_to_file"].as<string>(), ios::trunc);
+
     ifstream U_ifile;
     bool U_from_file = configCase["U_from_file"].IsDefined();
     if (U_from_file) U_ifile.open(configCase["U_from_file"].as<string>());
     bool U_is_diff =
         U_from_file and (configCase["U_from_file"].as<string>().find("IMU") != string::npos);
+
+    ifstream Time_ifile;
+    bool Time_from_file = configCase["Time_from_file"].IsDefined();
+    if (Time_from_file) Time_ifile.open(configCase["Time_from_file"].as<string>());
+
     for (int i = 0; i < observations.size(); i++)
     {
         observations[i].to_file = configCase["obs"][i]["to_file"].IsDefined();
@@ -168,11 +176,17 @@ int main(int argc, char* argv[])
             vehicle_case = true;
             stochastic_cloning = true;
             break;
+        case 5:  /// Vehicle3 Smoothing
+            ekf = ContinuousEKF(N, x0);
+            ekf.state_transition_function = vehicle3_state_transition_function;
+            f = vehicle3_state_transition_function;
+            ekf.state_transition_jacobian = vehicle3_state_transition_jacobian;
+            break;
         default: exit(1);
     }
-    /// Setup integrator steps
-    if (configCase["integration_steps"].IsDefined())
-        ekf.setSteps((int)configCase["integration_steps"].as<double>());
+    /// Setup integrator dt
+    if (configCase["integration_dt"].IsDefined())
+        ekf.setIntegrationDt(configCase["integration_dt"].as<double>());
 
 
     /// Initialize noise generators for v and w
@@ -182,8 +196,20 @@ int main(int argc, char* argv[])
 
     /// Start simulation
     VectorXd ground_truth = x0;
-    for (int i = 1; i <= (int)T / dt; i++)
+
+    double time = 0;
+    int i=0;
+    while(time<T)
     {
+        if (Time_from_file){
+            time=vecFromCSV(Time_ifile)(0);
+            ekf.setExternalTime(time);
+        }
+        else{
+            time+=dt;
+        }
+        i++;
+
         if (U_from_file)
         {
             u = vecFromCSV(U_ifile);
@@ -284,6 +310,7 @@ int main(int argc, char* argv[])
             cout << "isnan i=" << i << endl;
             return 0;
         }
+        if(i%1000==0)cout<<i<<endl;
         ofile << ground_truth.head(2).format(csv) << ",";
         ofile << nObs << ",";
         for (int iObs = 0; iObs < nObs; iObs++)

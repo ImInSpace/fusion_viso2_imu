@@ -15,10 +15,11 @@ Pk=reshape(X(:,end-3:end).',[2 2 size(X,1)]);
 
 %subplot(3,3,seed)
 hold on
-scatter(tx(1),ty(1),30,'r');
-legend_text={'start'};
-plot(tx,ty,'r');
-legend_text{end+1}='ground\_truth';
+legend_text={};
+%scatter(tx(1),ty(1),30,'r');
+%legend_text{end+1}={'start'};
+%plot(tx,ty,'r');
+%legend_text{end+1}='ground\_truth';
 obs_colors='gcmy';
 for i=1:nObs
     li=plot(ox(:,i),oy(:,i),obs_colors(i));
@@ -42,7 +43,7 @@ lgd.Location='Best';
 %end
 return
 shadow=polyshape();
-for i=1:size(X,1)
+for i=1:100:size(X,1)
     shadow=union(shadow,draw_ellipse([kx(i),ky(i)],Pk(:,:,i)));
 end
 shplot = plot(shadow,'FaceColor','b',...

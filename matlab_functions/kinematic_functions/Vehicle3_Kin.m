@@ -25,6 +25,13 @@ P=[].';
 F= sym(zeros(size(X))); %a=lf, b=lr
 R=my_eul2rotm(eul);
 lw2euld=localw2euld(eul);
+
+small_angles_approx=0
+if small_angles_approx
+    R=subs(R,[sin([psi phi]) cos([psi phi])],[psi phi 1 1]);
+    lw2euld=subs(lw2euld,[sin([psi phi]) cos([psi phi])],[psi phi 1 1]);
+end
+
 F(1:3)=R*vl;%pos_dot
 F(4:6)=lw2euld*wl;
 

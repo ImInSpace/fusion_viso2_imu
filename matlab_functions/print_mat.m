@@ -9,7 +9,7 @@ function print_mat(J,name,X,U,do_simplify)
             J=subs(J,X,sym('x',size(X)));
             J=subs(J,U,sym('u',size(U)));
         end
-        J=simplify(J,100);
+        J=rewrite(simplify(J,100),'cos');
         ccode(J,'File','tempF.cc')
         
         fid = fopen('tempF.cc');
