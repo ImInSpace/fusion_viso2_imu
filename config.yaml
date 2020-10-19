@@ -63,6 +63,7 @@ testCase:
       every_X: 100
 - # Vehicle3 smoothing
   Time_from_file: exoter_logs/log_1_time.csv
+  Kalman_to_file: exoter_logs/log_1_filtered.csv
   N: 12
   dt: 0.01
   T: 1000
