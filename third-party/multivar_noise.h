@@ -3,7 +3,7 @@
 #ifndef FUSION_VISO2_IMU_MULTIVAR_NOISE_H
 #define FUSION_VISO2_IMU_MULTIVAR_NOISE_H
 
-#include <Eigen\Dense>
+#include <Eigen/Dense>
 #include <random>
 #include <utility>
 

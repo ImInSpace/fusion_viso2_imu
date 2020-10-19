@@ -8,7 +8,7 @@
 
 #include "functions/functions.h"
 #include "library/library.h"
-#include "multivar_noise.h"
+#include "third-party/multivar_noise.h"
 #include "yaml-cpp/yaml.h"
 
 using namespace std;
@@ -93,35 +93,45 @@ int main(int argc, char* argv[])
     ofstream GT_ofile;
     bool GT_to_file = configCase["GT_to_file"].IsDefined();
     if (GT_to_file) GT_ofile.open(configCase["GT_to_file"].as<string>(), ios::trunc);
-    if (GT_to_file) assert(filesystem::exists(configCase["GT_to_file"].as<string>()));
+    assert(GT_ofile.good());
 
     ifstream GT_ifile;
     bool GT_from_file = configCase["GT_from_file"].IsDefined();
     if (GT_from_file) GT_ifile.open(configCase["GT_from_file"].as<string>());
-    if (GT_from_file) assert(filesystem::exists(configCase["GT_from_file"].as<string>()));
+    assert(GT_ifile.good());
 
     ofstream U_ofile;
     bool U_to_file = configCase["U_to_file"].IsDefined();
     if (U_to_file) U_ofile.open(configCase["U_to_file"].as<string>(), ios::trunc);
+    assert(U_ofile.good());
 
     ifstream U_ifile;
     bool U_from_file = configCase["U_from_file"].IsDefined();
     if (U_from_file) U_ifile.open(configCase["U_from_file"].as<string>());
     bool U_is_diff =
         U_from_file and (configCase["U_from_file"].as<string>().find("IMU") != string::npos);
+    assert(U_ifile.good());
 
     ifstream Time_ifile;
     bool Time_from_file = configCase["Time_from_file"].IsDefined();
     if (Time_from_file) Time_ifile.open(configCase["Time_from_file"].as<string>());
+    assert(Time_ifile.good());
 
-    for (int i = 0; i < observations.size(); i++)
+    ofstream Kalman_ofile;
+    bool Kalman_to_file = configCase["Kalman_to_file"].IsDefined();
+    if (Kalman_to_file) Kalman_ofile.open(configCase["Kalman_to_file"].as<string>(), ios::trunc);
+    assert(Kalman_ofile.good());
+
+    for (unsigned int i = 0; i < observations.size(); i++)
     {
         observations[i].to_file = configCase["obs"][i]["to_file"].IsDefined();
         if (observations[i].to_file)
             observations[i].ofile.open(configCase["obs"][i]["to_file"].as<string>(), ios::trunc);
+        assert(observations[i].ofile.good());
         observations[i].from_file = configCase["obs"][i]["from_file"].IsDefined();
         if (observations[i].from_file)
             observations[i].ifile.open(configCase["obs"][i]["from_file"].as<string>());
+        assert(observations[i].ifile.good());
     }
 
     /// Set up random
@@ -319,6 +329,7 @@ int main(int argc, char* argv[])
         ofile << ekf.getP().topLeftCorner(2, 2).format(csv) << endl;
         if (GT_to_file) GT_ofile << ground_truth.format(csv) << endl;
         if (U_to_file) U_ofile << u.format(csv) << endl;
+        if (Kalman_to_file) Kalman_ofile << ekf.getx().format(csv)<<endl;
     }
     ofile.close();
     if (GT_to_file) GT_ofile.close();

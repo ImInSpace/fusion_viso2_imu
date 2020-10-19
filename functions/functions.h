@@ -11,7 +11,7 @@
 #include <boost/numeric/odeint/stepper/runge_kutta_dopri5.hpp>
 #include <ctime>       //Time
 #include <functional>  //Functions as parameters
-#include "../multivar_noise.h"
+#include "../third-party/multivar_noise.h"
 #include "yaml-cpp/yaml.h"
 
 using namespace std;

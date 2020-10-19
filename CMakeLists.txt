@@ -26,7 +26,7 @@ set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 #include library
 add_subdirectory(library)
 add_subdirectory(functions)
-add_executable(test_fusion_viso2_imu test.cpp multivar_noise.h)
+add_executable(test_fusion_viso2_imu test.cpp third-party/multivar_noise.h)
 add_executable(test_rotations test_rotations.cpp)
 
 #link libraries
