@@ -13,8 +13,9 @@ using namespace std;
 using namespace Eigen;
 using namespace boost::numeric::odeint;
 
-class ContinuousEKF {
-protected:
+class ContinuousEKF
+{
+  protected:
     /** State size **/
     int N;
 
@@ -38,6 +39,10 @@ protected:
 
     /** Number of integration steps for each predict **/
     double integration_dt = 0.001;
+
+    /** Observation is angle **/
+    typedef Array<bool, Dynamic, 1> ArrayXb;
+    ArrayXb observation_is_angle;
 
   protected:
     /** Returns time to be predicted in a predict step. **/
@@ -111,12 +116,18 @@ protected:
      * to the new time
      * @param externalTime current_time
      */
-    void setExternalTime(double externalTime) {
+    void setExternalTime(double externalTime)
+    {
         external_t = externalTime;
         use_external_t = true;
     }
 
-    void setIntegrationDt(double integration_dt) { ContinuousEKF::integration_dt = integration_dt; }
+    void setIntegrationDt(double integrationDt) { integration_dt = integrationDt; }
+
+    void setObservationIsAngle(const ArrayXb& observationIsAngle)
+    {
+        observation_is_angle = observationIsAngle;
+    }
 
     /** Clone a part of the kalman state, also affects the covariance
      * Basically, x(to+i)=x(from+i) for 0<=i<size (changing the covariance accordingly)
@@ -165,7 +176,7 @@ protected:
 
     typedef function<MatrixXd(VectorXd const&)> Observation_jacobian;
     /** Jacobian of the observation function **/
-    Observation_jacobian observation_jacobian = [](const VectorXd &_x) {
+    Observation_jacobian observation_jacobian = [](const VectorXd& _x) {
         // Jacobian of above observation function
         int _N = _x.size();
         MatrixXd H(_N / 2, _N);

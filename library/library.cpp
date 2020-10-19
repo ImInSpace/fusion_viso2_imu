@@ -42,6 +42,10 @@ void ContinuousEKF::update(const VectorXd& z, const MatrixXd& R)
 
     /** Update according to kalman equations **/
     VectorXd y = z - h;
+    for (unsigned int i = 0; i<observation_is_angle.size(); i++){
+        if (observation_is_angle(i))
+            y(i)=fmod(y(i)+M_PI,2*M_PI)-M_PI;
+    }
     MatrixXd S = H * P * H.transpose() + R;
     MatrixXd K = P * H.transpose() * S.inverse();
     x = x + K * y;

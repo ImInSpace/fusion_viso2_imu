@@ -191,6 +191,7 @@ int main(int argc, char* argv[])
             ekf.state_transition_function = vehicle3_state_transition_function;
             f = vehicle3_state_transition_function;
             ekf.state_transition_jacobian = vehicle3_state_transition_jacobian;
+            ekf.setObservationIsAngle((Array<bool, Dynamic, 1>(6)<<false,false,false,true,true,true).finished());
             break;
         default: exit(1);
     }
