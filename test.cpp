@@ -49,19 +49,21 @@ int main(int argc, char* argv[])
     YAML::Node config = YAML::LoadFile(yamlfile);
     YAML::Node configCase = config["testCase"][testCaseIndex - 1];
 
-    int N = (int)configCase["N"].as<double>(); /// state size
-    double dt = configCase["dt"].as<double>(); /// time step
-    double T = configCase["T"].as<double>();   /// total simulation time
+    int N = (int)configCase["N"].as<double>();  /// state size
+    double dt = configCase["dt"].as<double>();  /// time step
+    double T = configCase["T"].as<double>();    /// total simulation time
 
-    VectorXd x0 = vecFromYAML(configCase["x0"]); /// Starting position
-    VectorXd u = vecFromYAML(configCase["u"]);   /// Input
-    MatrixXd Q = vecFromYAML(configCase["Qd"]).asDiagonal(); /// Q matrix (state transition noise)
+    VectorXd x0 = vecFromYAML(configCase["x0"]);              /// Starting position
+    VectorXd u = vecFromYAML(configCase["u"]);                /// Input
+    MatrixXd Q = vecFromYAML(configCase["Qd"]).asDiagonal();  /// Q matrix (state transition noise)
     Q *= configCase["Qm"].as<double>();
     /// Make Q into positive semi-definite matrix
     Q = Q.transpose().eval() * Q;
 
-    MatrixXd C = MatrixXd::Zero(u.size(),u.size()); /// Input noise (only used for stochastic cloning)
-    if(configCase["Cd"].IsDefined()){
+    MatrixXd C =
+        MatrixXd::Zero(u.size(), u.size());  /// Input noise (only used for stochastic cloning)
+    if (configCase["Cd"].IsDefined())
+    {
         C = vecFromYAML(configCase["Cd"]).asDiagonal();
         C *= configCase["Cm"].as<double>();
         /// Make C into positive semi-definite matrix
@@ -69,14 +71,14 @@ int main(int argc, char* argv[])
     }
 
     int nObs = configCase["obs"].size();
-    vector<Observation> observations(nObs); /// Observations
+    vector<Observation> observations(nObs);  /// Observations
     for (int i = 0; i < nObs; i++)
     {
-        MatrixXd R = vecFromYAML(configCase["obs"][i]["Rd"]).asDiagonal(); /// Observation noise
+        MatrixXd R = vecFromYAML(configCase["obs"][i]["Rd"]).asDiagonal();  /// Observation noise
         R *= configCase["obs"][i]["Rm"].as<double>();
         /// Make R into positive semi-definite matrix
         R = R.transpose().eval() * R;
-        int every_X = 1; /// Observation occurs every 'every_X' steps
+        int every_X = 1;  /// Observation occurs every 'every_X' steps
         if (configCase["obs"][i]["every_X"].IsDefined())
             every_X = (int)configCase["obs"][i]["every_X"].as<double>();
         /// Call the constructor, this will also generate the noise generator from R
@@ -176,7 +178,8 @@ int main(int argc, char* argv[])
             ekf.setConstantDt(dt);
             /// In stochastic cloning the model has a different equation than the kalman filter
             /// The ground truth uses the dynamic equations
-            /// The kalman filter uses kinematic equations and gets velocities from the ground truth + noise
+            /// The kalman filter uses kinematic equations and gets velocities from the ground truth
+            /// + noise
             ekf.state_transition_function = vehicle_cloning_state_transition_function;
             f = vehicle_state_transition_function;
             ekf.state_transition_jacobian = vehicle_cloning_state_transition_jacobian;
@@ -191,14 +194,14 @@ int main(int argc, char* argv[])
             ekf.state_transition_function = vehicle3_state_transition_function;
             f = vehicle3_state_transition_function;
             ekf.state_transition_jacobian = vehicle3_state_transition_jacobian;
-            ekf.setObservationIsAngle((Array<bool, Dynamic, 1>(6)<<false,false,false,true,true,true).finished());
+            ekf.setObservationIsAngle(
+                (Array<bool, Dynamic, 1>(6) << false, false, false, true, true, true).finished());
             break;
         default: exit(1);
     }
     /// Setup integrator dt
     if (configCase["integration_dt"].IsDefined())
         ekf.setIntegrationDt(configCase["integration_dt"].as<double>());
-
 
     /// Initialize noise generators for v and w
     normal_random_variable v{Q};
@@ -208,27 +211,30 @@ int main(int argc, char* argv[])
     /// Start simulation
     VectorXd ground_truth = x0;
 
+    double output_time = 0;
     double time = 0;
-    int i=0;
-    while(time<T)
+    int i = 0;
+    while (time < T)
     {
-        if (Time_from_file){
-            time=vecFromCSV(Time_ifile)(0);
-            ekf.setExternalTime(time);
+        if (Time_from_file)
+        {
+            time = vecFromCSV(Time_ifile)(0);
         }
-        else{
-            time+=dt;
+        else
+        {
+            time += dt;
         }
         i++;
 
         if (U_from_file)
         {
             u = vecFromCSV(U_ifile);
-            if (U_is_diff) /// If the input comes from an observation (rel pose diff) divide it by dt to get rel vel
+            if (U_is_diff)  /// If the input comes from an observation (rel pose diff) divide it by
+                            /// dt to get rel vel
                 u /= dt;
         }
         else if (vehicle_case and i % 10 == 0)
-        { /// On the vehicle testcase switch steering angle randomly every 10 steps
+        {  /// On the vehicle testcase switch steering angle randomly every 10 steps
             u(2) += fRand(-1., 1.) * 5 * EIGEN_PI / 180;  // NOLINT(cert-msc30-c,cert-msc50-cpp)
             u(2) = clamp(u(2), -max_steering_angle, max_steering_angle);
         }
@@ -240,16 +246,31 @@ int main(int argc, char* argv[])
 
         VectorXd kalman_input = u;
         MatrixXd kalman_model_uncertainty = Q;
-        if (vehicle_case and stochastic_cloning){
+        if (vehicle_case and stochastic_cloning)
+        {
             /// If we are on stochastic cloning, we only have
-            kalman_model_uncertainty = MatrixXd::Zero(N,N);
-            kalman_model_uncertainty.topLeftCorner(3,3) += C;
-            if (not U_from_file) kalman_input = ground_truth.tail(3) + c();
+            kalman_model_uncertainty = MatrixXd::Zero(N, N);
+            kalman_model_uncertainty.topLeftCorner(N/2, N/2) += C;
+            if (not U_from_file) kalman_input = ground_truth.tail(N/2) + c();
         }
         /// Call kalman prediction step.
-        if (!only_ground_truth) ekf.predict(kalman_input, kalman_model_uncertainty);
+        if (!only_ground_truth)
+        {
+            if (Time_from_file)
+            {
+                while (Kalman_to_file and time - output_time >= dt)
+                {
+                    output_time += dt;
+                    ekf.setExternalTime(output_time);
+                    ekf.predict(kalman_input, kalman_model_uncertainty);
+                    Kalman_ofile << ekf.getx().format(csv) << endl;
+                }
+                ekf.setExternalTime(time);
+            }
+            ekf.predict(kalman_input, kalman_model_uncertainty);
+        }
 
-        if (isnan(ekf.getP()(1, 1))) cout<<"isnan after predict"<<endl;
+        if (isnan(ekf.getP()(1, 1))) cout << "isnan after predict" << endl;
         /// Iterate through all observations
         for (auto& observation : observations)
         {
@@ -262,7 +283,8 @@ int main(int argc, char* argv[])
             {
                 z = vecFromCSV(observation.ifile);
 
-                /// The z is stored as a rel pose diff in the files (to be compatible with stochastic cloning)
+                /// The z is stored as a rel pose diff in the files (to be compatible with
+                /// stochastic cloning)
                 if (velocity_measurements) z /= dt * observation.every_x;
             }
             else
@@ -280,7 +302,7 @@ int main(int argc, char* argv[])
                     z = VectorXd(3);
                     z << abs_pose_diff(0) * cos(th) + abs_pose_diff(1) * sin(th),  // Vn
                         -abs_pose_diff(0) * sin(th) + abs_pose_diff(1) * cos(th),  // Ve
-                        abs_pose_diff(2);                                     // th_dot
+                        abs_pose_diff(2);                                          // th_dot
 
                     if (velocity_measurements) z /= dt * observation.every_x;
                     observation.truth_prev = ground_truth;
@@ -292,9 +314,10 @@ int main(int argc, char* argv[])
 
             /// Call kalman update step
             if (!only_ground_truth) ekf.update(z, observation.R);
-            if (isnan(ekf.getP()(1, 1))) cout<<"isnan after update"<<endl;
+            if (isnan(ekf.getP()(1, 1))) cout << "isnan after update" << endl;
 
-            /// The z is stored as a rel pose diff in the files (to be compatible with stochastic cloning)
+            /// The z is stored as a rel pose diff in the files (to be compatible with stochastic
+            /// cloning)
             if (velocity_measurements) z *= dt * observation.every_x;
 
             if (stochastic_cloning) ekf.stochastic_cloning(0, 3, 3);
@@ -307,7 +330,8 @@ int main(int argc, char* argv[])
                 /// On the vehicle test case, get absolute pose difference from rel pose diff (z)
                 double th = observation.x(2);
                 VectorXd abs_pose_diff(3);
-                abs_pose_diff << z(0) * cos(th) - z(1) * sin(th), z(0) * sin(th) + z(1) * cos(th), z(2);
+                abs_pose_diff << z(0) * cos(th) - z(1) * sin(th), z(0) * sin(th) + z(1) * cos(th),
+                    z(2);
                 observation.x.head(N / 2) += abs_pose_diff;
             }
 
@@ -321,7 +345,7 @@ int main(int argc, char* argv[])
             cout << "isnan i=" << i << endl;
             return 0;
         }
-        if(i%1000==0)cout<<i<<endl;
+        if (i % 1000 == 0) cout << i << endl;
         ofile << ground_truth.head(2).format(csv) << ",";
         ofile << nObs << ",";
         for (int iObs = 0; iObs < nObs; iObs++)
@@ -330,7 +354,7 @@ int main(int argc, char* argv[])
         ofile << ekf.getP().topLeftCorner(2, 2).format(csv) << endl;
         if (GT_to_file) GT_ofile << ground_truth.format(csv) << endl;
         if (U_to_file) U_ofile << u.format(csv) << endl;
-        if (Kalman_to_file) Kalman_ofile << ekf.getx().format(csv)<<endl;
+        if (Kalman_to_file and not Time_from_file)  Kalman_ofile << ekf.getx().format(csv) << endl;
     }
     ofile.close();
     if (GT_to_file) GT_ofile.close();
