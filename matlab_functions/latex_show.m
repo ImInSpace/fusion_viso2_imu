@@ -34,5 +34,5 @@ function latex_show(var1,var2)
     % Read it in to a variable in my m-file.
     rgbImage = imread(filename);
     rgbImage = imresize(rgbImage,2);
-    imshow(rgbImage);
+    imshow(rgbImage,'Border','tight');
 end

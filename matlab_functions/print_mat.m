@@ -2,7 +2,9 @@ function print_mat(J,name,X,U,do_simplify)
     if nargin<5
         do_simplify=0;
     end
-    fprintf("MatrixXd %s = MatrixXd::Zero(%i,%i);\n",name,size(J,1),size(J,2))
+    stack=dbstack('-completenames', 1);
+    fprintf("  // From %s \n",erase(stack(end).file,pwd))
+    fprintf("  MatrixXd %s = MatrixXd::Zero(%i,%i);\n",name,size(J,1),size(J,2))
     if do_simplify
         if nargin>2 
             syms x(t) u(t)
@@ -41,5 +43,6 @@ function print_mat(J,name,X,U,do_simplify)
             end
         end
     end
+    fprintf('  return %s;\n',name)
     fprintf('\n');
 end

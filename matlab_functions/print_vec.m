@@ -3,8 +3,9 @@ function print_vec(J,name,X,U,do_simplify)
         do_simplify=0;
     end
 
-    
-    fprintf("VectorXd %s = VectorXd::Zero(%i);\n",name,length(J))
+    stack=dbstack('-completenames');
+    fprintf("  // From %s \n",erase(stack(end).file,pwd))
+    fprintf("  VectorXd %s = VectorXd::Zero(%i);\n",name,length(J))
     if do_simplify
         J=rewrite(simplify(J,100),'cos');
         
@@ -43,5 +44,6 @@ function print_vec(J,name,X,U,do_simplify)
                 end
         end
     end
-        fprintf('\n');
+    fprintf('  return %s;\n',name)
+    fprintf('\n');
 end

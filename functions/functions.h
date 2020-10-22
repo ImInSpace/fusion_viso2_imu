@@ -42,6 +42,14 @@ VectorXd vehicle3_state_transition_function(const VectorXd& x, const VectorXd& u
 
 MatrixXd vehicle3_state_transition_jacobian(const VectorXd& x, const VectorXd& u);
 
+VectorXd vehicle3_cloning_state_transition_function(const VectorXd& x, const VectorXd& u);
+
+MatrixXd vehicle3_cloning_state_transition_jacobian(const VectorXd& x, const VectorXd& u);
+
+VectorXd vehicle3_cloning_observation_function(const VectorXd& x);
+
+MatrixXd vehicle3_cloning_observation_jacobian(const VectorXd& x);
+
 typedef VectorXd state_type;
 
 struct ode
