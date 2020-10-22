@@ -1,11 +1,11 @@
 %% State declaration
 syms x          %x-coordinate
 syms y          %y-coordinate
-syms theta         %yaw
-syms theta_dot     %yaw rate
+syms psi         %yaw
+syms psi_dot     %yaw rate
 syms V_e         %lateral V_elocity
 syms V_n         %longitudinal V_elocity
-X=[x;y;theta;V_n;V_e;theta_dot];
+X=[x;y;psi;V_n;V_e;psi_dot];
 Xs=[0;0;0;0;0;1];
 
 %% Input declaration
@@ -33,8 +33,8 @@ if ~ignore_lateral_force
     Fzf=(m*g*b-(P_f+P_r)*h)/(a+b); %normal load on front tyre
     Fzr=(m*g*a-(P_f+P_r)*h)/(a+b); %normal load on rear tyre
 
-    af=delta-(a*theta_dot+ V_e)/V_n;  %front wheel slip angle
-    ar=(b*theta_dot-V_e)/V_n;    %rear wheel slip angle
+    af=delta-(a*psi_dot+ V_e)/V_n;  %front wheel slip angle
+    ar=(b*psi_dot-V_e)/V_n;    %rear wheel slip angle
 
     %asf=c*af/(mu*Fzf);
     %asr=c*ar/(mu*Fzr); 
@@ -44,22 +44,22 @@ if ~ignore_lateral_force
     %Fef=mu*Fzf*(asf-(asf^2)/3+asf^3/27)*sqrt(1-P_f^2/(mu^2*Fzf^2)+P_f^2/c^2); %Lateral force on front tyre
     %Fer=mu*Fzr*(asr-(asr^2)/3+asr^3/27)*sqrt(1-P_r^2/(mu^2*Fzr^2)+P_r^2/c^2); %Lateral force on rear tyre
 else
-    %If we assume thetaat Fef always does maximum force to counter 
+    %If we assume psiat Fef always does maximum force to counter 
     Fef=P_r*delta/(1+delta);
     Fer=-P_r*delta/(1+delta);
 end
 
 %% ODE definition
-F= [V_n*cos(theta)-V_e*sin(theta);     %x=X
-    V_n*sin(theta)+V_e*cos(theta);     %y=Y
-    theta_dot;                    %theta=psi
-    (P_r-Fef*sin(delta))/m+V_e*theta_dot; %V_n=x_dot
-    (Fef*cos(delta)+Fer)/m-V_n*theta_dot;%V_e=y_dot
-    (a*Fef-b*Fer)/I;    %theta_dot=psi_dot
+F= [V_n*cos(psi)-V_e*sin(psi);     %x=X
+    V_n*sin(psi)+V_e*cos(psi);     %y=Y
+    psi_dot;                    %psi=psi
+    (P_r-Fef*sin(delta))/m+V_e*psi_dot; %V_n=x_dot
+    (Fef*cos(delta)+Fer)/m-V_n*psi_dot;%V_e=y_dot
+    (a*Fef-b*Fer)/I;    %psi_dot=psi_dot
   ]; %a=lf, b=lr
 
 h=[V_n;     %x=X
    V_e;     %y=Y
-   theta_dot];
+   psi_dot];
 
 generate_c_functions;

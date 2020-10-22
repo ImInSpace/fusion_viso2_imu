@@ -1,20 +1,20 @@
 %% State declaration
 syms x          %x-coordinate
 syms y          %y-coordinate
-syms theta         %yaw
+syms psi         %yaw
 syms x_s         %
 syms y_s         %stationary copy
-syms theta_s        %
-X=[x;y;theta;x_s;y_s;theta_s];
+syms psi_s        %
+X=[x;y;psi;x_s;y_s;psi_s];
 Xs=[0;0;0;0;0;0];
 N=length(X);
 
 %% Input declaration
 syms V_n          %Normal Speed
 syms V_e          %Lateral Speed
-syms theta_dot    %Steering angle
+syms psi_dot    %Steering angle
 
-U=[V_n;V_e;theta_dot];
+U=[V_n;V_e;psi_dot];
 Us=[1;5000;0];
 
 %% Parameter declaration
@@ -31,17 +31,17 @@ syms m I a b h g mu c
 P=[m I a b h g mu c].';
 
 %% ODE definition
-F= [V_n*cos(theta)-V_e*sin(theta);
-    V_n*sin(theta)+V_e*cos(theta); 
-    theta_dot; 
+F= [V_n*cos(psi)-V_e*sin(psi);
+    V_n*sin(psi)+V_e*cos(psi); 
+    psi_dot; 
     0;
     0;
     0
   ]; %a=lf, b=lr
 
-h=[ cos(theta_s)*(x - x_s) + sin(theta_s)*(y - y_s);
-   -sin(theta_s)*(x - x_s) + cos(theta_s)*(y - y_s);
-	theta - theta_s];
+h=[ cos(psi_s)*(x - x_s) + sin(psi_s)*(y - y_s);
+   -sin(psi_s)*(x - x_s) + cos(psi_s)*(y - y_s);
+	psi - psi_s];
 
 
 generate_c_functions;

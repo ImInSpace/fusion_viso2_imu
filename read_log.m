@@ -41,41 +41,43 @@ function read_log(logfile)
     %format position
     TT=addvars(TT,[T.position_data_0 T.position_data_1 T.position_data_2],'NewVariableNames','position');
     
-    %TT(abs(TT.euler_angles(:,2))>15*pi/180 | abs(TT.euler_angles(:,3))>15*pi/180,:)=[];
-  
+    %remove poses where pitch or roll is greater than 20 degrees (vicon
+    %errors)
+    TT(abs(TT.euler_angles(:,2))>20*pi/180 | abs(TT.euler_angles(:,3))>20*pi/180,:)=[];
+    
     
     assignin('base','TT',TT)
     
     figure()
+    view(3)
     hold on 
     
     axis equal
     
-    p=scatter3(TT.position(:,1),TT.position(:,2),TT.position(:,3),2,'filled');
-    p.DataTipTemplate.DataTipRows(end+1) = dataTipTextRow('psi',TT.euler_angles(:,1));
-    p.DataTipTemplate.DataTipRows(end+1) = dataTipTextRow('theta',TT.euler_angles(:,2));
-    p.DataTipTemplate.DataTipRows(end+1) = dataTipTextRow('phi',TT.euler_angles(:,3));
+    pl=scatter3(TT.position(:,1),TT.position(:,2),TT.position(:,3),2,'filled');
+    pl.DataTipTemplate.DataTipRows(end+1) = dataTipTextRow('psi',TT.euler_angles(:,1)*180/pi);
+    pl.DataTipTemplate.DataTipRows(end+1) = dataTipTextRow('theta',TT.euler_angles(:,2)*180/pi);
+    pl.DataTipTemplate.DataTipRows(end+1) = dataTipTextRow('phi',TT.euler_angles(:,3)*180/pi);
     
     %plot3(x,y,z);
     
-    car1=stlread('car_1.stl');
-    V=car1.Points/3;
-    F=car1.ConnectivityList;
-    V(:,3)=-V(:,3);
-    V(:,1)=-V(:,1);
-    pat=patch('Vertices',V,'Faces',F,'FaceColor','r');
+    [car,V]=plot_car();
+    
     tic
     for i=ceil(linspace(1,size(TT,1),200))
         while toc<TT.elapsed_seconds(i)/100
         end
-        R=eul2rotm(TT.euler_angles(i,:));
+        R=my_eul2rotm(TT.euler_angles(i,:));
         %R=rotmat(T.quaternion(i),'point');
-        P=TT.position(i,:);
-        pat.set('Vertices',P+V*R.')
+        p=TT.position(i,:).';
+        car.set('Vertices',(p+R*V')')
         drawnow
     end
     
     
     csvwrite(regexprep(logfile,'\.txt','.csv'),[TT.position TT.euler_angles]);
     csvwrite(regexprep(logfile,'\.txt','_time.csv'),TT.elapsed_seconds);
+    
+    
+    assignin('base','pl',pl)
 end
