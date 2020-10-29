@@ -1,7 +1,7 @@
 ---
 #seed: 2
 testCase:
-- # constant speed
+- #1 constant speed
   N: 4
   dt: 0.01
   integration_dt: 0.0001
@@ -13,7 +13,7 @@ testCase:
     - Rd: [1, 1]
       Rm: .01
   u: [0, 0, 0, -0.1]
-- # RTBP
+- #2 RTBP
   N: 4
   dt: 0.03
   integration_dt: 0.0003
@@ -28,7 +28,7 @@ testCase:
       Rm: .0001
       every_X: 10
   u: [0, 0, 0, 0]
-- # Vehicle
+- #3 Vehicle
   GT_to_file: vehicle_data/GT.csv
   U_to_file: vehicle_data/U.csv
   N: 6
@@ -49,7 +49,7 @@ testCase:
       to_file: vehicle_data/VISUAL.csv
   u: [0, 0, 0]
   max_steering_angle: 0.174533
-- # Vehicle cloning
+- #4 Vehicle cloning
   N: 6
   dt: 0.1
   T: 100
@@ -65,11 +65,11 @@ testCase:
       every_X: 100
   u: [0, 0, 0]
   max_steering_angle: 0.174533
-- # Vehicle3 smoothing
+- #5 Vehicle3 smoothing
   Time_from_file: exoter_logs/log_1_time.csv
   Kalman_to_file: exoter_logs/log_1_filtered.csv
   N: 12
-  dt: 0.1
+  dt: 0.01
   T: 200
   integration_dt: 0.01
   x0: [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
@@ -77,6 +77,21 @@ testCase:
   Qm: 0.01
   obs:
     - Rd: [ 1, 1, 1, .1, .1, .1]
-      Rm: .5
+      Rm: .05
       from_file: exoter_logs/log_1.csv
   u: [ 0 ]
+- #6 Vehicle3 cloning
+    GT_from_file: exoter_logs/log_1_filtered.csv
+    N: 12
+    dt: 0.01
+    T: 200
+    integration_dt: 0.01
+    x0: [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+    Qd: [0, 0, 0, 0, 0, 0, 1, 1, 1, .1, .1, .1]
+    Qm: 0.01
+    Cd: [ 1, 1, 1, .1, .1, .1]
+    Cm: .05
+    obs:
+      - Rd: [ 1, 1, 1, .1, .1, .1]
+        Rm: .05
+    u: [ 0 ]

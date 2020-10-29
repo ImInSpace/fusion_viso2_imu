@@ -16,10 +16,10 @@ Pk=reshape(X(:,end-3:end).',[2 2 size(X,1)]);
 %subplot(3,3,seed)
 hold on
 legend_text={};
-%scatter(tx(1),ty(1),30,'r');
-%legend_text{end+1}={'start'};
-%plot(tx,ty,'r');
-%legend_text{end+1}='ground\_truth';
+scatter(tx(1),ty(1),30,'r');
+legend_text{end+1}='start';
+plot(tx,ty,'r');
+legend_text{end+1}='ground\_truth';
 obs_colors='gcmy';
 for i=1:nObs
     li=plot(ox(:,i),oy(:,i),obs_colors(i));

@@ -6,6 +6,8 @@
 #include <iostream>
 #include <utility>
 
+#define eigen_assert(X) do { if(!(X)) throw std::runtime_error(#X); } while(false);
+
 #include "functions/functions.h"
 #include "library/library.h"
 #include "third-party/multivar_noise.h"
@@ -195,7 +197,20 @@ int main(int argc, char* argv[])
             f = vehicle3_state_transition_function;
             ekf.state_transition_jacobian = vehicle3_state_transition_jacobian;
             ekf.setObservationIsAngle(
-                (Array<bool, Dynamic, 1>(6) << false, false, false, true, true, true).finished());
+                    (Array<bool, Dynamic, 1>(6) << false, false, false, true, true, true).finished());
+            break;
+        case 6:  /// Vehicle3 Cloning
+            ekf = ContinuousEKF(N, x0, MatrixXd::Zero(N, N));
+            ekf.stochastic_cloning(0, N/2, N/2);
+            ekf.setConstantDt(dt);
+
+            ekf.state_transition_function = vehicle3_cloning_state_transition_function;
+            f = vehicle3_state_transition_function;
+            ekf.state_transition_jacobian = vehicle3_cloning_state_transition_jacobian;
+            ekf.observation_function = vehicle3_cloning_observation_function;
+            ekf.observation_jacobian = vehicle3_cloning_observation_jacobian;
+            vehicle_case = true;
+            stochastic_cloning = true;
             break;
         default: exit(1);
     }
@@ -233,7 +248,7 @@ int main(int argc, char* argv[])
                             /// dt to get rel vel
                 u /= dt;
         }
-        else if (vehicle_case and i % 10 == 0)
+        else if (vehicle_case and i % 10 == 0 and u.size()>=2)
         {  /// On the vehicle testcase switch steering angle randomly every 10 steps
             u(2) += fRand(-1., 1.) * 5 * EIGEN_PI / 180;  // NOLINT(cert-msc30-c,cert-msc50-cpp)
             u(2) = clamp(u(2), -max_steering_angle, max_steering_angle);
