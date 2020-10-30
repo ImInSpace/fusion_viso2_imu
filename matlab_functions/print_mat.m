@@ -3,7 +3,9 @@ function print_mat(J,name,X,U,do_simplify)
         do_simplify=0;
     end
     stack=dbstack('-completenames', 1);
-    fprintf("  // From %s \n",erase(stack(end).file,pwd))
+    if ~isempty(stack)
+        fprintf("  // From %s \n",erase(stack(end).file,pwd))
+    end
     fprintf("  MatrixXd %s = MatrixXd::Zero(%i,%i);\n",name,size(J,1),size(J,2))
     if do_simplify
         if nargin>2 
@@ -36,10 +38,12 @@ function print_mat(J,name,X,U,do_simplify)
             J=subs(J,X,x(0:length(X)-1).');
             J=subs(J,U,u(0:length(U)-1).');
         end
-        for j=1:size(J,2)
-            if J(i,j)~=0
-                Jij=sprintf('%s(%i,%i)',name,i-1,j-1);
-                print_var(J(i,j),Jij,X,U);
+        for i=1:size(J,1)
+            for j=1:size(J,2)
+                if J(i,j)~=0
+                    Jij=sprintf('%s(%i,%i)',name,i-1,j-1);
+                    print_var(J(i,j),Jij);
+                end
             end
         end
     end

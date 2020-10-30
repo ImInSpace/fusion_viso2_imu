@@ -40,7 +40,7 @@ function print_vec(J,name,X,U,do_simplify)
         for i=1:length(J)
                 if J(i)~=0
                     Ji=sprintf('%s(%i)',name,i-1);
-                    print_var(J(i),Ji,X,U);
+                    print_var(J(i),Ji);
                 end
         end
     end

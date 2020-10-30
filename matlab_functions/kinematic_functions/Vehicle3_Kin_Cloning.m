@@ -53,6 +53,7 @@ h=[R_s.'*(pos-pos_s);
                           %TODO: delta_eul
 
                           
+                          
 %F=subs(F,[pitch roll pitch_s roll_s],[0 0 0 0]);
 %h=subs(h,[pitch roll pitch_s roll_s],[0 0 0 0]);
 generate_c_functions;
