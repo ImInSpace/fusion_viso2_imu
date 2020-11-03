@@ -196,6 +196,7 @@ int main(int argc, char* argv[])
             max_steering_angle = configCase["max_steering_angle"].as<double>();
             vehicle_case = true;
             stochastic_cloning = true;
+            ekf.noise_is_input_noise = true;
             break;
         case 5:  /// Vehicle3 Smoothing
             ekf = ContinuousEKF(N, x0);
@@ -223,10 +224,12 @@ int main(int argc, char* argv[])
             ekf.state_transition_function = vehicle3_cloning_state_transition_function;
             f = vehicle3_state_transition_function;
             ekf.state_transition_jacobian = vehicle3_cloning_state_transition_jacobian;
+            ekf.state_transition_input_jacobian = vehicle3_cloning_state_transition_input_jacobian;
             ekf.observation_function = vehicle3_cloning_observation_function;
             ekf.observation_jacobian = vehicle3_cloning_observation_jacobian;
             vehicle_case = true;
             stochastic_cloning = true;
+            ekf.noise_is_input_noise = true;
             break;
         default: exit(1);
     }
@@ -281,8 +284,7 @@ int main(int argc, char* argv[])
         if (vehicle_case and stochastic_cloning)
         {
             /// If we are on stochastic cloning, we only have
-            kalman_model_uncertainty = MatrixXd::Zero(N, N);
-            kalman_model_uncertainty.topLeftCorner(N / 2, N / 2) += C;
+            kalman_model_uncertainty = C;
             if (not U_from_file)
             {
                 kalman_input = ground_truth.tail(N / 2) + c();

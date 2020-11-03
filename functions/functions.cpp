@@ -366,6 +366,28 @@ MatrixXd vehicle3_cloning_state_transition_jacobian(const VectorXd& x, const Vec
     return J;
 }
 
+MatrixXd vehicle3_cloning_state_transition_input_jacobian(const VectorXd& x) {
+    MatrixXd B = MatrixXd::Zero(12,6);
+    double t2 = cos(x(4));
+    double t3 = cos(x(5));
+    double t4 = sin(x(4));
+    double t5 = sin(x(5));
+    double t6 = 1.0/t2;
+    //this is not the real jacobian, it has been modified to B(1:3,1:3)=eye(3)
+    //the resulting noise should be the same if the noise on x,y and z is the same
+    B(0,0) = 1.0;
+    B(1,1) = 1.0;
+    B(2,2) = 1.0;
+    B(3,4) = t5*t6;
+    B(3,5) = t3*t6;
+    B(4,4) = t3;
+    B(4,5) = -t5;
+    B(5,3) = 1.0;
+    B(5,4) = t4*t5*t6;
+    B(5,5) = t3*t4*t6;
+    return B;
+}
+
 VectorXd vehicle3_cloning_observation_function(const VectorXd& x)
 {
     // From \matlab_functions\kinematic_functions\Vehicle3_Kin_Cloning.m

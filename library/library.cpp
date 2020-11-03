@@ -1,4 +1,5 @@
 #include "library.h"
+
 #include <iostream>
 
 /// Continuous EKF with discrete time measurements:
@@ -8,7 +9,8 @@ double ContinuousEKF::predict(const VectorXd& u, const MatrixXd& Q)
 {
     /** Compute dt **/
     double dt = getDt();
-    if (dt>0) {
+    if (dt > 0)
+    {
 
         /** Join x and P into a single variable (odeint doesn't take tuples) **/
         MatrixXd x0(N, N + 1);
@@ -21,7 +23,7 @@ double ContinuousEKF::predict(const VectorXd& u, const MatrixXd& Q)
          * TODO: maybe change state to something that permits adaptative step size
          * TODO: if not, add something to manually change the step size instead of just dt/100
          */
-        integrate_const(stepper, ode(this, u, Q), x0, 0.0, dt, min(integration_dt,dt));
+        integrate_const(stepper, ode(this, u, Q), x0, 0.0, dt, min(integration_dt, dt));
 
         /** Get variables back from integrator **/
         x = x0.col(0);
@@ -42,9 +44,9 @@ void ContinuousEKF::update(const VectorXd& z, const MatrixXd& R)
 
     /** Update according to kalman equations **/
     VectorXd y = z - h;
-    for (unsigned int i = 0; i<observation_is_angle.size(); i++){
-        if (observation_is_angle(i))
-            y(i)=fmod(y(i)+M_PI,2*M_PI)-M_PI;
+    for (unsigned int i = 0; i < observation_is_angle.size(); i++)
+    {
+        if (observation_is_angle(i)) y(i) = fmod(y(i) + M_PI, 2 * M_PI) - M_PI;
     }
     MatrixXd S = H * P * H.transpose() + R;
     MatrixXd K = P * H.transpose() * S.inverse();
@@ -53,12 +55,19 @@ void ContinuousEKF::update(const VectorXd& z, const MatrixXd& R)
 }
 
 void ContinuousEKF::ode::operator()(const ContinuousEKF::state_type& pair,
-                             ContinuousEKF::state_type& dpairdt,
-                             double t) const
+                                    ContinuousEKF::state_type& dpairdt,
+                                    double t) const
 {
     int N = pair.rows();
     dpairdt = state_type(N, N + 1);
     dpairdt.col(0) = f->state_transition_function(pair.col(0), u);
     MatrixXd F = f->state_transition_jacobian(pair.col(0), u);
-    dpairdt.rightCols(N) = F * pair.rightCols(N) + pair.rightCols(N) * F.transpose() + Q;
+    dpairdt.rightCols(N) = F * pair.rightCols(N) + pair.rightCols(N) * F.transpose();
+    if (f->noise_is_input_noise)
+    {
+        MatrixXd B = f->state_transition_input_jacobian(pair.col(0));
+        dpairdt.rightCols(N) += B * Q * B.transpose();
+    }
+    else
+        dpairdt.rightCols(N) += Q;
 }
