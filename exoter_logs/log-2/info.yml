@@ -1,0 +1,7 @@
+---
+- time: 20201105-1753
+  cmdline: 'visual_inertial_odometry_dataset.rb '
+  robot_name: default
+  robot_type: default
+  app_name: exoter
+  app_dir: "/home/user/rock/bundles/exoter"
