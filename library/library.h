@@ -44,6 +44,10 @@ class ContinuousEKF
     typedef Array<bool, Dynamic, 1> ArrayXb;
     ArrayXb observation_is_angle;
 
+  public:
+    /** Noise is input noise instead of state transition **/
+    bool noise_is_input_noise=false;
+
   protected:
     /** Returns time to be predicted in a predict step. **/
     double getDt()
@@ -155,12 +159,21 @@ class ContinuousEKF
     };
 
     typedef function<MatrixXd(VectorXd const&, VectorXd const&)> State_transition_jacobian;
-    /** Jacobian of state_transition_function **/
+    /** Jacobian of state_transition_function wrt the state**/
     State_transition_jacobian state_transition_jacobian = [](const VectorXd& _x,
                                                              const VectorXd& _u) {
         int _N = _x.size();
         MatrixXd F(_N, _N);
         F << Z(_N / 2), I(_N / 2), Z(_N / 2), Z(_N / 2);
+        return F;
+    };
+
+    typedef function<MatrixXd(VectorXd const&)> State_transition_input_jacobian;
+    /** Jacobian of state_transition_function wrt the input**/
+    State_transition_input_jacobian state_transition_input_jacobian = [](const VectorXd& _x) {
+        int _N = _x.size();
+        MatrixXd F(_N, _N / 2);
+        F << I(_N / 2), Z(_N / 2);
         return F;
     };
 

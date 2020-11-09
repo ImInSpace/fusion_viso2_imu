@@ -6,7 +6,11 @@
 #include <iostream>
 #include <utility>
 
-#define eigen_assert(X) do { if(!(X)) throw std::runtime_error(#X); } while(false);
+#define eigen_assert(X)                         \
+    do                                          \
+    {                                           \
+        if (!(X)) throw std::runtime_error(#X); \
+    } while (false);
 
 #include "functions/functions.h"
 #include "library/library.h"
@@ -21,7 +25,9 @@ struct Observation
         : R(r), every_x(every_x), x(x0), w(normal_random_variable(r)), truth_prev(x0)
     {
     }
+
     Observation() = default;
+
     MatrixXd R;
     int every_x = 1;
     VectorXd x;
@@ -190,6 +196,7 @@ int main(int argc, char* argv[])
             max_steering_angle = configCase["max_steering_angle"].as<double>();
             vehicle_case = true;
             stochastic_cloning = true;
+            ekf.noise_is_input_noise = true;
             break;
         case 5:  /// Vehicle3 Smoothing
             ekf = ContinuousEKF(N, x0);
@@ -197,20 +204,32 @@ int main(int argc, char* argv[])
             f = vehicle3_state_transition_function;
             ekf.state_transition_jacobian = vehicle3_state_transition_jacobian;
             ekf.setObservationIsAngle(
-                    (Array<bool, Dynamic, 1>(6) << false, false, false, true, true, true).finished());
+                (Array<bool, Dynamic, 1>(6) << false, false, false, true, true, true).finished());
             break;
         case 6:  /// Vehicle3 Cloning
+            if (GT_from_file)
+            {
+                x0 = vecFromCSV(GT_ifile);
+                for (Observation& observation : observations)
+                {
+                    observation.truth_prev = x0;
+                    observation.x = x0;
+                }
+            }
+
             ekf = ContinuousEKF(N, x0, MatrixXd::Zero(N, N));
-            ekf.stochastic_cloning(0, N/2, N/2);
+            ekf.stochastic_cloning(0, N / 2, N / 2);
             ekf.setConstantDt(dt);
 
             ekf.state_transition_function = vehicle3_cloning_state_transition_function;
             f = vehicle3_state_transition_function;
             ekf.state_transition_jacobian = vehicle3_cloning_state_transition_jacobian;
+            ekf.state_transition_input_jacobian = vehicle3_cloning_state_transition_input_jacobian;
             ekf.observation_function = vehicle3_cloning_observation_function;
             ekf.observation_jacobian = vehicle3_cloning_observation_jacobian;
             vehicle_case = true;
             stochastic_cloning = true;
+            ekf.noise_is_input_noise = true;
             break;
         default: exit(1);
     }
@@ -225,6 +244,7 @@ int main(int argc, char* argv[])
 
     /// Start simulation
     VectorXd ground_truth = x0;
+    VectorXd model_only = x0;
 
     double output_time = 0;
     double time = 0;
@@ -245,10 +265,10 @@ int main(int argc, char* argv[])
         {
             u = vecFromCSV(U_ifile);
             if (U_is_diff)  /// If the input comes from an observation (rel pose diff) divide it by
-                            /// dt to get rel vel
+                /// dt to get rel vel
                 u /= dt;
         }
-        else if (vehicle_case and i % 10 == 0 and u.size()>=2)
+        else if (vehicle_case and i % 10 == 0 and u.size() >= 2)
         {  /// On the vehicle testcase switch steering angle randomly every 10 steps
             u(2) += fRand(-1., 1.) * 5 * EIGEN_PI / 180;  // NOLINT(cert-msc30-c,cert-msc50-cpp)
             u(2) = clamp(u(2), -max_steering_angle, max_steering_angle);
@@ -264,9 +284,12 @@ int main(int argc, char* argv[])
         if (vehicle_case and stochastic_cloning)
         {
             /// If we are on stochastic cloning, we only have
-            kalman_model_uncertainty = MatrixXd::Zero(N, N);
-            kalman_model_uncertainty.topLeftCorner(N/2, N/2) += C;
-            if (not U_from_file) kalman_input = ground_truth.tail(N/2) + c();
+            kalman_model_uncertainty = C;
+            if (not U_from_file)
+            {
+                kalman_input = ground_truth.tail(N / 2) + c();
+            }
+            integrate(dt, ekf.state_transition_function, model_only, kalman_input, zero_noise);
         }
         /// Call kalman prediction step.
         if (!only_ground_truth)
@@ -307,9 +330,9 @@ int main(int argc, char* argv[])
                 /// Get observation from ground truth
                 if (not vehicle_case)
                     z = ekf.observation_function(ground_truth);
-                else
+                else if (N == 6)
                 {
-                    /// On the vehicle test case, get absolute pose difference
+                    /// On the vehicle 2 test case, get absolute pose difference
                     VectorXd abs_pose_diff =
                         (ground_truth.head(N / 2) - observation.truth_prev.head(N / 2));
                     /// And then transform it to relative pose difference (z)
@@ -319,6 +342,15 @@ int main(int argc, char* argv[])
                         -abs_pose_diff(0) * sin(th) + abs_pose_diff(1) * cos(th),  // Ve
                         abs_pose_diff(2);                                          // th_dot
 
+                    if (velocity_measurements) z /= dt * observation.every_x;
+                    observation.truth_prev = ground_truth;
+                }
+                else
+                {
+                    assert(N == 12);
+                    VectorXd two_poses(12);
+                    two_poses << ground_truth.head(N / 2), observation.truth_prev.head(N / 2);
+                    z = ekf.observation_function(two_poses);
                     if (velocity_measurements) z /= dt * observation.every_x;
                     observation.truth_prev = ground_truth;
                 }
@@ -335,18 +367,36 @@ int main(int argc, char* argv[])
             /// cloning)
             if (velocity_measurements) z *= dt * observation.every_x;
 
-            if (stochastic_cloning) ekf.stochastic_cloning(0, 3, 3);
+            if (stochastic_cloning) ekf.stochastic_cloning(0, N / 2, N / 2);
 
             /// Add z to the observation
             if (not vehicle_case)
                 observation.x.head(N / 2) = z;
-            else
+            else if (N == 6)
             {
                 /// On the vehicle test case, get absolute pose difference from rel pose diff (z)
-                double th = observation.x(2);
+                double ps = observation.x(2);
                 VectorXd abs_pose_diff(3);
-                abs_pose_diff << z(0) * cos(th) - z(1) * sin(th), z(0) * sin(th) + z(1) * cos(th),
+                abs_pose_diff << z(0) * cos(ps) - z(1) * sin(ps), z(0) * sin(ps) + z(1) * cos(ps),
                     z(2);
+                observation.x.head(N / 2) += abs_pose_diff;
+            }
+            else
+            {
+                double ps = observation.x(3);
+                double th = observation.x(4);
+                double ph = observation.x(5);
+                VectorXd abs_pose_diff(6);
+                abs_pose_diff << -z(1) * (cos(ph) * sin(ps) - cos(ps) * sin(ph) * sin(th))
+                                     + z(2) * (sin(ph) * sin(ps) + cos(ph) * cos(ps) * sin(th))
+                                     + z(0) * cos(ps) * cos(th),
+                    z(1) * (cos(ph) * cos(ps) + sin(ph) * sin(ps) * sin(th))
+                        - z(2) * (cos(ps) * sin(ph) - cos(ph) * sin(ps) * sin(th))
+                        + z(0) * cos(th) * sin(ps),
+                    -z(0) * sin(th) + z(2) * cos(ph) * cos(th) + z(1) * cos(th) * sin(ph),
+                    (z(5) * cos(ph)) / cos(th) + (z(4) * sin(ph)) / cos(th),
+                    z(4) * cos(ph) - z(5) * sin(ph),
+                    z(3) + z(5) * cos(ph) * tan(th) + z(4) * sin(ph) * tan(th);
                 observation.x.head(N / 2) += abs_pose_diff;
             }
 
@@ -362,14 +412,15 @@ int main(int argc, char* argv[])
         }
         if (i % 1000 == 0) cout << i << endl;
         ofile << ground_truth.head(2).format(csv) << ",";
-        ofile << nObs << ",";
+        ofile << nObs + ((int)(vehicle_case and stochastic_cloning)) << ",";
+        if (vehicle_case and stochastic_cloning) ofile << model_only.head(2).format(csv) << ",";
         for (int iObs = 0; iObs < nObs; iObs++)
             ofile << observations[iObs].x.head(2).format(csv) << ",";
         ofile << ekf.getx().head(2).format(csv) << ",";
         ofile << ekf.getP().topLeftCorner(2, 2).format(csv) << endl;
         if (GT_to_file) GT_ofile << ground_truth.format(csv) << endl;
         if (U_to_file) U_ofile << u.format(csv) << endl;
-        if (Kalman_to_file and not Time_from_file)  Kalman_ofile << ekf.getx().format(csv) << endl;
+        if (Kalman_to_file and not Time_from_file) Kalman_ofile << ekf.getx().format(csv) << endl;
     }
     ofile.close();
     if (GT_to_file) GT_ofile.close();

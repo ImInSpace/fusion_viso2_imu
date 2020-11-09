@@ -6,9 +6,10 @@ dt=configCase.dt;
 N=size(X,2);
 ps=zeros(3,N);
 euls=zeros(3,N);
-ps(:,1)=X(1:3,1);
-euls(:,1)=X(4:6,1);
-for i=2:N
+i1=1;
+ps(:,i1)=X(1:3,i1);
+euls(:,i1)=X(4:6,i1);
+for i=(i1+1):N
     vl=X(7:9,i);wl=X(10:12,i);
     lw2euld=localw2euld(euls(:,i-1));
     euls(:,i)=euls(:,i-1)+lw2euld*wl*dt;
