@@ -9,13 +9,20 @@ function read_log(logfile)
     %detect how many extra columns there are
     num_extra_cols=sum(startsWith(opts.VariableNames,'Var'));
     
-    % shift everything to their correct spot
-    opts.VariableNames(sourceframe_col+num_extra_cols:end)=opts.VariableNames(sourceframe_col:end-num_extra_cols);
-    % put new names to the extra columns of sourceframe
-    opts.VariableNames(sourceframe_col:sourceframe_col+num_extra_cols-1)=arrayfun(@(i)[opts.VariableNames{sourceframe_col} num2str(i)],1:num_extra_cols,'UniformOutput',false);
+    if (num_extra_cols>0)
+        % shift everything to their correct spot
+        opts.VariableNames(sourceframe_col+num_extra_cols:end)=opts.VariableNames(sourceframe_col:end-num_extra_cols);
+        % put new names to the extra columns of sourceframe
+        opts.VariableNames(sourceframe_col:sourceframe_col+num_extra_cols-1)=arrayfun(@(i)[opts.VariableNames{sourceframe_col} num2str(i)],1:num_extra_cols,'UniformOutput',false);
+    end
+    Tprev=preview(logfile,opts);
+    if iscell(Tprev(1,end-1).Variables)
+        opts.VariableNames(sourceframe_col:sourceframe_col+1)=[];
+    end
     
     %remove x_vicon_pose_samples_ from the start of all variable names
-    opts.VariableNames=cellfun(@(name)name(22:end),opts.VariableNames,'UniformOutput',false);
+    len_prefix=length(opts.VariableNames{1})-16;
+    opts.VariableNames=cellfun(@(name)name(len_prefix:end),opts.VariableNames,'UniformOutput',false);
     %remove underscore from ending of some variables
     end_with_subs=endsWith(opts.VariableNames,'_');
     opts.VariableNames(end_with_subs)=cellfun(@(name)name(1:end-1),opts.VariableNames(end_with_subs),'UniformOutput',false);
@@ -26,7 +33,7 @@ function read_log(logfile)
     %read the file
     T=readtable(logfile,opts);
     %remove nan rows
-    T(isnan(T.cov_position_data_1),:)=[]; 
+    T(isnan(T.position_data_1),:)=[]; 
     
     %convert to timetable
     TT=timetable(datetime(T.time_microseconds*10^-6,'ConvertFrom','posixtime'));
