@@ -12,6 +12,8 @@ X=[pos;eul;vl;wl];
 Xs=zeros(size(X));
 N=length(X);
 
+
+
 %% Input declaration
 
 U=sym([]);

@@ -127,6 +127,11 @@ int main(int argc, char* argv[])
     if (Time_from_file) Time_ifile.open(configCase["Time_from_file"].as<string>());
     assert(Time_ifile.good());
 
+    ifstream OTime_ifile;
+    bool OTime_from_file = configCase["OTime_from_file"].IsDefined();
+    if (Time_from_file) Time_ifile.open(configCase["OTime_from_file"].as<string>());
+    assert(OTime_ifile.good());
+
     ofstream Kalman_ofile;
     bool Kalman_to_file = configCase["Kalman_to_file"].IsDefined();
     if (Kalman_to_file) Kalman_ofile.open(configCase["Kalman_to_file"].as<string>(), ios::trunc);
@@ -246,7 +251,10 @@ int main(int argc, char* argv[])
     VectorXd ground_truth = x0;
     VectorXd model_only = x0;
 
-    double output_time = 0;
+    double next_output_time = dt;
+    if (OTime_from_file)
+        next_output_time = vecFromCSV(OTime_ifile)(0);
+
     double time = 0;
     int i = 0;
     while (time < T)
@@ -296,12 +304,15 @@ int main(int argc, char* argv[])
         {
             if (Time_from_file)
             {
-                while (Kalman_to_file and time - output_time >= dt)
+                while (Kalman_to_file and time >= next_output_time)
                 {
-                    output_time += dt;
-                    ekf.setExternalTime(output_time);
+                    ekf.setExternalTime(next_output_time);
                     ekf.predict(kalman_input, kalman_model_uncertainty);
                     Kalman_ofile << ekf.getx().format(csv) << endl;
+                    if (OTime_from_file)
+                        next_output_time = vecFromCSV(OTime_ifile)(0);
+                    else
+                        next_output_time += dt;
                 }
                 ekf.setExternalTime(time);
             }

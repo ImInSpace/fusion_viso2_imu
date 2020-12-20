@@ -14,6 +14,7 @@ X=[pos;eul;pos_s;eul_s];
 Xs=zeros(size(X));
 N=length(X);
 
+return
 %% Input declaration
 
 syms vl_x vl_y vl_z      %local v

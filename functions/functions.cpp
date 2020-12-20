@@ -525,8 +525,9 @@ VectorXd vecFromYAML(const YAML::Node& node)
     return Eigen::Map<Eigen::VectorXd>(v.data(), v.size());
 }
 
-VectorXd vecFromCSV(istream& file)
+VectorXd vecFromCSV(istream& file, bool peek)
 {
+    auto pointer=file.tellg();
     vector<double> result;
     string line;
     getline(file, line);
@@ -535,5 +536,7 @@ VectorXd vecFromCSV(istream& file)
     string cell;
 
     while (getline(lineStream, cell, ',')) result.push_back(stod(cell));
+    if (peek)
+        file.seekg(pointer);
     return Eigen::Map<VectorXd>(result.data(), result.size());
 }

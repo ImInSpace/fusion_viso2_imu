@@ -98,8 +98,12 @@ hLines = findobj(gca,'Type','line');
 for i=1:length(hLines)
     hLine=hLines(i);
     if startsWith(hLine.DisplayName,'clo')
-        hLine.LineStyle='--';
+        %hLine.LineStyle='--';
         if ~endsWith(hLine.DisplayName,'kalman')
+            delete(hLine)
+        end
+    elseif startsWith(hLine.DisplayName,'vel')
+        if endsWith(hLine.DisplayName,'kalman')
             delete(hLine)
         end
     end

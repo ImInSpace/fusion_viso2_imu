@@ -28,6 +28,7 @@ function latex_show(var1,var2)
     response = request.send( 'https://quicklatex.com/latex3.f' );
 
     filename = regexp(response.Body.Data,"https://.*\.png","match");
+    clipboard('copy',filename)
     if strcmp(filename,"https://quicklatex.com/cache3/error.png")
         error(response.Body.Data)
     end

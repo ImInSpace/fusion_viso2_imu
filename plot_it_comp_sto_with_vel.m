@@ -1,7 +1,7 @@
 clear 
 %close all
 load iterate_data\1000r.mat
-fig=figure;
+fig=clf;
 axis=gca;
 hold on
 
@@ -17,13 +17,17 @@ names={'i',...%1
 
 DATA=[(1:iter).' R1s R2s imu_drifts vis_drifts vel_kdrifts, clo_kdrifts, vel_kuncerts clo_kuncerts];
 
-x=4;y=5;filt1=6;filt2=7;
+x=7;y=9;filt1=8;filt2=8;
 
 %filt1=7;filt2=9;x=7;y=9;
 filt=DATA(:,filt1)>=DATA(:,filt2);
 
 %x=imu_drifts;y=vis_drifts;
-s=scatter3(axis,DATA(:,x),DATA(:,y),DATA(:,filt1)-DATA(:,filt2),20,filt,'filled');
+if filt1~=filt2
+    s=scatter3(axis,DATA(:,x),DATA(:,y),DATA(:,filt1)-DATA(:,filt2),20,filt,'filled');
+else
+    s=scatter(axis,DATA(:,x),DATA(:,y),20,'filled');
+end
 set(axis,'XScale','Log')
 set(axis,'YScale','Log')
 %set(axis,'ZScale','Log')
@@ -32,6 +36,10 @@ ylabel(names{y})
 
 for i=1:length(names)
     s.DataTipTemplate.DataTipRows(i) = dataTipTextRow(names{i},DATA(:,i));
+end
+
+if filt1==filt2
+    return
 end
 colormap([0 0 1;0 0 1;0 0 0;1 0 0;1 0 0])
 cb = colorbar();

@@ -48,13 +48,23 @@ function read_log(logfile)
     %format position
     TT=addvars(TT,[T.position_data_0 T.position_data_1 T.position_data_2],'NewVariableNames','position');
     
+    if any(~isnan(T.velocity_data_0))
+        TT=addvars(TT,[T.velocity_data_0 T.velocity_data_1 T.velocity_data_2],'NewVariableNames','velocity');
+    end
+    
+    if any(~isnan(T.angular_velocity_data_0))
+        TT=addvars(TT,[T.angular_velocity_data_0 T.angular_velocity_data_1 T.angular_velocity_data_2],'NewVariableNames','angular_velocity');
+    end
+    
     %remove poses where pitch or roll is greater than 20 degrees (vicon
     %errors)
     TT(abs(TT.euler_angles(:,2))>20*pi/180 | abs(TT.euler_angles(:,3))>20*pi/180,:)=[];
     
     
     assignin('base','TT',TT)
+    assignin('base','T',T)
     
+    return
     figure()
     view(3)
     hold on 

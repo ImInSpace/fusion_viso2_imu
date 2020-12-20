@@ -81,5 +81,5 @@ double fRand(double fMin, double fMax);
 
 VectorXd vecFromYAML(const YAML::Node& node);
 
-VectorXd vecFromCSV(istream& file);
+VectorXd vecFromCSV(istream& file, bool peek = false);
 #endif  // FUSION_VISO2_IMU_FUNCTIONS_H
