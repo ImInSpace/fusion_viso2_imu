@@ -42,7 +42,7 @@ struct Observation
 int main(int argc, char* argv[])
 {
     /// Input parameters (from argv)
-    int testCaseIndex = 4;
+    int testCaseIndex = 5;
     if (argc >= 2) testCaseIndex = strtol(argv[1], nullptr, 10);
 
     bool only_ground_truth = false;
@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
 
     ifstream OTime_ifile;
     bool OTime_from_file = configCase["OTime_from_file"].IsDefined();
-    if (Time_from_file) Time_ifile.open(configCase["OTime_from_file"].as<string>());
+    if (OTime_from_file) OTime_ifile.open(configCase["OTime_from_file"].as<string>());
     assert(OTime_ifile.good());
 
     ofstream Kalman_ofile;
@@ -254,7 +254,8 @@ int main(int argc, char* argv[])
     double next_output_time = dt;
     if (OTime_from_file)
         next_output_time = vecFromCSV(OTime_ifile)(0);
-
+    if (Time_from_file)
+        ekf.setCurrentExternalTime(vecFromCSV(Time_ifile,true)(0));
     double time = 0;
     int i = 0;
     while (time < T)

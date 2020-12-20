@@ -12,7 +12,10 @@ function latex_show(var1,var2)
     import matlab.net.http.*
     import matlab.net.http.field.*
 
+    formula=regexprep(formula,'\\left\(\\begin\{array\}\{[c ]*\}','\\begin{bmatrix}');
+    formula=regexprep(formula,'\\end\{array\}\\right\)','\\end{bmatrix}');
     formula=regexprep(formula,'\\left\((\\\w*) \\right\)','$1');
+    clipboard('copy',formula);
     formula=replace(formula,'&','%26');
 
     request = RequestMessage( 'POST', ...

@@ -125,6 +125,14 @@ class ContinuousEKF
         external_t = externalTime;
         use_external_t = true;
     }
+    /** Set currentExternalTime the predict step will integrate from this time
+     * @param externalTime current_time
+     */
+    void setCurrentExternalTime(double externalTime)
+    {
+        current_external_t = externalTime;
+        use_external_t = true;
+    }
 
     void setIntegrationDt(double integrationDt) { integration_dt = integrationDt; }
 
@@ -138,13 +146,13 @@ class ContinuousEKF
      * @param from index where to start copying from
      * @param to index where to start copying to
      * @param size number of elements to copy
-     */
-    void stochastic_cloning(int from, int to, int size)
-    {
-        x.segment(to, size) = x.segment(from, size);
-        P.block(to, 0, size, N) = P.block(from, 0, size, N);
-        P.block(0, to, N, size) = P.block(0, from, N, size);
-    }
+         */
+        void stochastic_cloning(int from, int to, int size)
+        {
+            x.segment(to, size) = x.segment(from, size);
+            P.block(to, 0, size, N) = P.block(from, 0, size, N);
+            P.block(0, to, N, size) = P.block(0, from, N, size);
+        }
 
     typedef function<VectorXd(const VectorXd&, const VectorXd&)> State_transition_function;
     /** State transition function f: x'=f(x,u).

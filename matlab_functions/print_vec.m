@@ -26,6 +26,7 @@ function print_vec(J,name,X,U,do_simplify)
             end
             tline=regexprep(tline,'(t\d*) =','double $1 =');
             tline=regexprep(tline,'A0\[(\d*)\]\[0\]',[name '($1)']);
+            tline=regexprep(tline,'A0\[0\]\[(\d*)\]',[name '($1)']);
             disp(tline)
             tline = fgetl(fid);
         end

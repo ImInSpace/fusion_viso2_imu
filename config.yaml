@@ -25,7 +25,7 @@ testCase:
     - Rd: [1, 1]
       Rm: .001
     - Rd: [1, 1]
-      Rm: .0001
+      Rm: .001
       every_X: 10
   u: [0, 0, 0, 0]
 - #3 Vehicle
@@ -40,11 +40,11 @@ testCase:
   Qm: 1.3
   obs:
     - Rd: [1, 1, .5]
-      Rm: .1
+      Rm: .01
       to_file: vehicle_data/IMU.csv
     -
       Rd: [1, 1, .5]
-      Rm: .005
+      Rm: .05
       every_X: 10
       to_file: vehicle_data/VISUAL.csv
   u: [0, 0, 0]
@@ -66,11 +66,12 @@ testCase:
   u: [0, 0, 0]
   max_steering_angle: 0.174533
 - #5 Vehicle3 smoothing
-  Time_from_file: exoter_logs/log_1_time.csv
-  Kalman_to_file: exoter_logs/log_1_filtered.csv
+  Time_from_file: exoter_logs/log-1/gt_time.csv
+  OTime_from_file: exoter_logs/log-1/dvo_time.csv
+  Kalman_to_file: exoter_logs/log-1/gt_vo.csv
   N: 12
-  dt: 0.01
-  T: 200
+  dt: 0.1
+  T: 2000000
   integration_dt: 0.01
   x0: [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
   Qd: [0, 0, 0, 0, 0, 0, 1, 1, 1, .1, .1, .1]
@@ -78,7 +79,7 @@ testCase:
   obs:
     - Rd: [ 1, 1, 1, .1, .1, .1]
       Rm: .05
-      from_file: exoter_logs/log_1.csv
+      from_file: exoter_logs/log-1/gt.csv
   u: [ 0 ]
 - #6 Vehicle3 cloning
     GT_from_file: exoter_logs/log_1_filtered.csv
