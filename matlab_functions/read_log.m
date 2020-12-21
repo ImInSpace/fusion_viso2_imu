@@ -1,10 +1,11 @@
-function read_log(logfile, do_plot)
+function out=read_log(logfile, do_plot)
     if nargin<2
         do_plot=0;
     end
     if ischar(do_plot)
         do_plot=str2double(do_plot);
     end
+    disp(do_plot)
     plot_car=0;
     %Count number of header lines
     fid = fopen(logfile);
@@ -46,6 +47,12 @@ function read_log(logfile, do_plot)
     %remove __1 from ending of some variables
     end_with_1=endsWith(opts.VariableNames,'__1');
     opts.VariableNames(end_with_1)=cellfun(@(name)name(1:end-3),opts.VariableNames(end_with_1),'UniformOutput',false);
+    %add a that is missing in some cases
+    missing_a=contains(opts.VariableNames,'_dat_');
+    opts.VariableNames(missing_a)=replace(opts.VariableNames(missing_a),"_dat_","_data_");
+    %add _0 that is missing in some cases
+    is_ang_vel_without_0=strcmp(opts.VariableNames,'angular_velocity_data');
+    opts.VariableNames(is_ang_vel_without_0)={'angular_velocity_data_0'};
     
     %read the file
     T=readtable(logfile,opts);
@@ -57,7 +64,7 @@ function read_log(logfile, do_plot)
     
     %add time elapsed
     first_t=TT.Time(1);
-    first_t=datetime(first_t.Year,first_t.Month,first_t.Day,first_t.Hour,0,0); %save time from 7 am that day
+    first_t=datetime(first_t.Year,first_t.Month,first_t.Day,7,0,0); %save time from 7 am that day
     TT=addvars(TT,seconds(TT.Time-first_t),'NewVariableNames','elapsed_seconds');
     
     %add a variable with quaternion
@@ -66,14 +73,6 @@ function read_log(logfile, do_plot)
     TT=addvars(TT,quat2eul(TT.quaternion),'NewVariableNames','euler_angles');
     %format position
     TT=addvars(TT,[T.position_data_0 T.position_data_1 T.position_data_2],'NewVariableNames','position');
-    
-    if any(~isnan(T.velocity_data_0))
-        TT=addvars(TT,[T.velocity_data_0 T.velocity_data_1 T.velocity_data_2],'NewVariableNames','velocity');
-    end
-    
-    if any(~isnan(T.angular_velocity_data_0))
-        TT=addvars(TT,[T.angular_velocity_data_0 T.angular_velocity_data_1 T.angular_velocity_data_2],'NewVariableNames','angular_velocity');
-    end
     
     velocity_exists = any(~isnan(T.velocity_data_0));
     if velocity_exists
@@ -87,13 +86,15 @@ function read_log(logfile, do_plot)
     
     %remove poses where pitch or roll is greater than 20 degrees (vicon
     %errors)
-    TT(abs(TT.euler_angles(:,2))>15*pi/180 | abs(TT.euler_angles(:,3))>15*pi/180,:)=[];
+    %TT(abs(TT.euler_angles(:,2))>15*pi/180 | abs(TT.euler_angles(:,3))>15*pi/180,:)=[];
     
-    
+    disp([min(TT.elapsed_seconds)-max(TT.elapsed_seconds)])
+    if nargout>0
+        out=TT;
+    end
     assignin('base','TT',TT)
     assignin('base','T',T)
     
-    return
 
     dlmwrite(regexprep(logfile,'\.txt','.csv'),[TT.position TT.euler_angles],'precision',10);
     dlmwrite(regexprep(logfile,'\.txt','_time.csv'),TT.elapsed_seconds,'precision','%.9f');

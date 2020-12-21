@@ -66,8 +66,9 @@ testCase:
   u: [0, 0, 0]
   max_steering_angle: 0.174533
 - #5 Vehicle3 smoothing
+  GT_from_file: exoter_logs/log-1/gt.csv
   Time_from_file: exoter_logs/log-1/gt_time.csv
-  OTime_from_file: exoter_logs/log-1/dvo_time.csv
+  OTime_from_file: exoter_logs\log-1\dvo_time.csv
   Kalman_to_file: exoter_logs/log-1/gt_vo.csv
   N: 12
   dt: 0.1
