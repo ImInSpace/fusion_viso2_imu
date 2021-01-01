@@ -4,6 +4,7 @@ for i=1:15
         logdir=strcat(logdir,'\');
     end
     addpath(genpath('third-party/yamlmatlab'))
+    addpath(genpath('matlab_functions'))
     
     TT_GT=read_log(strcat(logdir,'gt.txt'));
     TT_DVO=read_log(strcat(logdir,'dvo.txt'));
@@ -29,6 +30,6 @@ for i=1:15
     yaml.WriteYaml('config2.yaml',config);
     system('cmake-build-debug\test_fusion_viso2_imu.exe 5 0 config2.yaml');
     GT_IO=csvread(strcat(logdir,'gt_io.csv'));
-    save(strcat(logdir,'filt.mat'),'GT_IO','GT_VO','TT_DIO','TT_GT')
+    save(strcat(logdir,'filt.mat'),'GT_IO','GT_VO','TT_DIO','TT_DVO')
     delete(strcat(logdir,'*.csv'))
 end
