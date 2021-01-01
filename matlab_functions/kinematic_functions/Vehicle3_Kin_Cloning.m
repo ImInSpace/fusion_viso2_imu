@@ -14,7 +14,6 @@ X=[pos;eul;pos_s;eul_s];
 Xs=zeros(size(X));
 N=length(X);
 
-return
 %% Input declaration
 
 syms vl_x vl_y vl_z      %local v
@@ -31,7 +30,11 @@ P=[].';
 
 %% ODE definition
 R=my_eul2rotm(eul);
+Rpsi=my_eul2rotm([psi;0;0]);
+Rthe=my_eul2rotm([0;theta;0]);
+Rphi=my_eul2rotm([0;0;phi]);
 lw2euld=localw2euld(eul);
+euld2lw=euld2localw(eul);
 
 small_angles_approx=0
 if small_angles_approx
@@ -39,7 +42,6 @@ if small_angles_approx
     lw2euld=subs(lw2euld,[sin([pitch roll]) cos([pitch roll])],[pitch roll 1 1]);
 end
 
-euld2lw=simplify(inv(lw2euld),100);
 
 R_s=subs(R,eul,eul_s);
 lw2euld_s=subs(lw2euld,eul,eul_s);

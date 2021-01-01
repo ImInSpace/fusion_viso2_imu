@@ -58,6 +58,9 @@ F= [V_n*cos(psi)-V_e*sin(psi);     %x=X
     (a*Fef-b*Fer)/I;    %psi_dot=psi_dot
   ]; %a=lf, b=lr
 
+Fef_s=sym('F_ef');
+Fer_s=sym('F_er');
+F=subs(F,[Fef Fer],[Fef_s Fer_s])
 h=[V_n;     %x=X
    V_e;     %y=Y
    psi_dot];

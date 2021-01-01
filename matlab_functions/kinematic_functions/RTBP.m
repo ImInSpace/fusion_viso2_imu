@@ -9,9 +9,13 @@ F=[X(3);
     X(4);
     Sx+2*X(4);
     Sy-2*X(3)];
-J=jacobian(F,X);
+%J=jacobian(F,X);
 r1_s=sym('r1');
 r2_s=sym('r2');
-
 F=subs(F,[r1 r2],[r1_s r2_s])
-J=subs(J,[r1 r2],[r1_s r2_s])
+h=X(1:2);
+U=sym([]);
+
+generate_c_functions;
+%F=subs(F,[r1 r2],[r1_s r2_s])
+%J=subs(J,[r1 r2],[r1_s r2_s])

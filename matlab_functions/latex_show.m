@@ -1,4 +1,4 @@
-function latex_show(var1,var2)
+function out=latex_show(var1,var2)
     
     if nargin==1
         H=var1;
@@ -15,6 +15,11 @@ function latex_show(var1,var2)
     formula=regexprep(formula,'\\left\(\\begin\{array\}\{[c ]*\}','\\begin{bmatrix}');
     formula=regexprep(formula,'\\end\{array\}\\right\)','\\end{bmatrix}');
     formula=regexprep(formula,'\\left\((\\\w*) \\right\)','$1');
+    if nargout==1
+        out=formula;
+        return
+    end
+    
     clipboard('copy',formula);
     formula=replace(formula,'&','%26');
 
@@ -31,7 +36,7 @@ function latex_show(var1,var2)
     response = request.send( 'https://quicklatex.com/latex3.f' );
 
     filename = regexp(response.Body.Data,"https://.*\.png","match");
-    clipboard('copy',filename)
+    %clipboard('copy',filename)
     if strcmp(filename,"https://quicklatex.com/cache3/error.png")
         error(response.Body.Data)
     end

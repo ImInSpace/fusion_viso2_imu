@@ -252,17 +252,24 @@ int main(int argc, char* argv[])
     VectorXd model_only = x0;
 
     double next_output_time = dt;
-    if (OTime_from_file)
+    if (OTime_from_file){
         next_output_time = vecFromCSV(OTime_ifile)(0);
+    }
     if (Time_from_file)
         ekf.setCurrentExternalTime(vecFromCSV(Time_ifile,true)(0));
     double time = 0;
     int i = 0;
-    while (time < T)
+    bool eof = false;
+    while (time < T and !eof)
     {
         if (Time_from_file)
         {
-            time = vecFromCSV(Time_ifile)(0);
+            try{
+                time = vecFromCSV(Time_ifile)(0);
+            }
+            catch(...){
+                return 0;
+            }
         }
         else
         {
@@ -310,8 +317,14 @@ int main(int argc, char* argv[])
                     ekf.setExternalTime(next_output_time);
                     ekf.predict(kalman_input, kalman_model_uncertainty);
                     Kalman_ofile << ekf.getx().format(csv) << endl;
-                    if (OTime_from_file)
-                        next_output_time = vecFromCSV(OTime_ifile)(0);
+                    if (OTime_from_file){
+                        try{
+                            next_output_time = vecFromCSV(OTime_ifile)(0);
+                        }
+                        catch(...){
+                            return 0;
+                        }
+                    }
                     else
                         next_output_time += dt;
                 }

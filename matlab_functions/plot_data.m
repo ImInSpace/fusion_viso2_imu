@@ -16,15 +16,15 @@ Pk=reshape(X(:,end-3:end).',[2 2 size(X,1)]);
 %subplot(3,3,seed)
 hold on
 legend_text={};
-scatter(tx(1),ty(1),30,'r');
-legend_text{end+1}='start';
+%scatter(tx(1),ty(1),30,'r');
+%legend_text{end+1}='start';
 plot(tx,ty,'r');
 legend_text{end+1}='ground\_truth';
 obs_colors='gcmy';
 for i=1:nObs
     li=plot(ox(:,i),oy(:,i),obs_colors(i));
     if (i==2)
-        li.LineStyle='-';
+        li.LineStyle='None';
         li.Marker='.';
         li.MarkerSize=10;
     end
@@ -38,6 +38,11 @@ if nObs==1
 end
 lgd = legend(legend_text);
 lgd.Location='Best';
+
+axis equal
+xlabel x
+ylabel y
+return
 %title(['Seed ' num2str(seed)])
 %drawnow()
 %end

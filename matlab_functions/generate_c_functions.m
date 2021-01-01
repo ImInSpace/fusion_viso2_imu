@@ -13,15 +13,25 @@ B=jacobian(F,U);
 Ad=(eye(N)+J*dt);
 Bd=B*dt;
 
-figure();
-subplot(2,3,1);
-latex_show('X',X);
-subplot(2,3,4);
-latex_show('U',U);
-subplot(2,3,[2 3]);
-latex_show('f',F);
-subplot(2,3,[5 6]);
-latex_show('h',h);
+do_plot=0
+if do_plot
+    figure();
+    subplot(2,3,1);
+    latex_show('\v x',X);
+    subplot(2,3,4);
+    latex_show('\v u',U);
+    subplot(2,3,[2 3]);
+    latex_show('f(\v x,\v u)',F);
+    subplot(2,3,[5 6]);
+    latex_show('h(\v x)',h);
+else
+    sep=' \quad ';
+    clipboard('copy',[latex_show('\v x',X),sep,...
+    latex_show('\v u',U),sep,...
+    latex_show('f(\v x,\v u)',F),sep,...
+    latex_show('h(\v x)',h)...
+    ])
+end
 
 %% Check controllability and observability
 C=Bd;
