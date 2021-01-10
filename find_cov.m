@@ -1,4 +1,4 @@
-eio=[];evo=[];
+eio=[];evo=[];egt=[];
 for i = 1:15
     load(strcat('exoter_logs\log-',num2str(i),'\filt.mat'))
     dio=[TT_DIO.velocity TT_DIO.angular_velocity];
@@ -6,6 +6,8 @@ for i = 1:15
     dio=dio(1:size(gtio,1),:);
     neio=dio-gtio;
     eio=[eio;neio(10:end-10,:)];
+    
+    egt=[egt;diff(GT_IO(:,7:12))./repmat(seconds(diff(TT_DIO.Time(1:size(gtio,1)))),1,6)];
     
     gtvo=GT_VO(:,1:6);
     dgtvo=zeros(size(gtvo,1)-1,6);
@@ -27,7 +29,9 @@ for i = 1:15
 end
 evo = rmoutliers(evo);
 eio = rmoutliers(eio);
+egt = rmoutliers(egt);
 Cio=cov(eio);
 stdio=std(eio);
 Cvo=cov(evo);
 stdvo=std(evo);
+stdgt=std(egt);

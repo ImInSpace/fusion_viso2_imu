@@ -76,3 +76,4 @@ dist_error=vecnorm([ox-tx oy-ty],2,2);
 %plot(dist_traveled,dist_error)
 dlm = fitlm(dist_traveled,dist_error,'Intercept',false);
 fprintf('%.1f%%\n',dlm.Coefficients.Estimate*100)
+

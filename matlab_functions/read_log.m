@@ -5,7 +5,7 @@ function out=read_log(logfile, do_plot)
     if ischar(do_plot)
         do_plot=str2double(do_plot);
     end
-    disp(do_plot)
+    %disp(do_plot)
     plot_car=0;
     %Count number of header lines
     fid = fopen(logfile);
@@ -34,22 +34,35 @@ function out=read_log(logfile, do_plot)
         opts.VariableNames(sourceframe_col:sourceframe_col+num_extra_cols-1)=arrayfun(@(i)[opts.VariableNames{sourceframe_col} num2str(i)],1:num_extra_cols,'UniformOutput',false);
     end
     Tprev=preview(logfile,opts);
+    if size(Tprev,2)==1
+        out=readtable(logfile,opts);
+        return
+    end
     if iscell(Tprev(1,end-1).Variables)
         opts.VariableNames(sourceframe_col:sourceframe_col+1)=[];
     end
     
     %remove x_vicon_pose_samples_ from the start of all variable names
+    %disp(opts.VariableNames{1})
     len_prefix=length(opts.VariableNames{1})-16;
     opts.VariableNames=cellfun(@(name)name(len_prefix:end),opts.VariableNames,'UniformOutput',false);
+    %disp(opts.VariableNames{1})
     %remove underscore from ending of some variables
     end_with_subs=endsWith(opts.VariableNames,'_');
     opts.VariableNames(end_with_subs)=cellfun(@(name)name(1:end-1),opts.VariableNames(end_with_subs),'UniformOutput',false);
     %remove __1 from ending of some variables
     end_with_1=endsWith(opts.VariableNames,'__1');
     opts.VariableNames(end_with_1)=cellfun(@(name)name(1:end-3),opts.VariableNames(end_with_1),'UniformOutput',false);
+    opts.VariableNames=replace(opts.VariableNames,"__","_");
     %add a that is missing in some cases
-    missing_a=contains(opts.VariableNames,'_dat_');
-    opts.VariableNames(missing_a)=replace(opts.VariableNames(missing_a),"_dat_","_data_");
+    opts.VariableNames=replace(opts.VariableNames,"_dat_","_data_");
+    opts.VariableNames=replace(opts.VariableNames,"_velo_","_velocity_");
+    end_with_d=endsWith(opts.VariableNames,'_d');
+    opts.VariableNames(end_with_d)=replace(opts.VariableNames(end_with_d),"_d","_data");
+    end_with_da=endsWith(opts.VariableNames,'_da');
+    opts.VariableNames(end_with_da)=replace(opts.VariableNames(end_with_da),"_da","_data");
+    end_with_dat=endsWith(opts.VariableNames,'_dat');
+    opts.VariableNames(end_with_dat)=replace(opts.VariableNames(end_with_dat),"_dat","_data");
     %add _0 that is missing in some cases
     is_ang_vel_without_0=strcmp(opts.VariableNames,'angular_velocity_data');
     opts.VariableNames(is_ang_vel_without_0)={'angular_velocity_data_0'};
@@ -88,9 +101,10 @@ function out=read_log(logfile, do_plot)
     %errors)
     %TT(abs(TT.euler_angles(:,2))>15*pi/180 | abs(TT.euler_angles(:,3))>15*pi/180,:)=[];
     
-    disp([min(TT.elapsed_seconds)-max(TT.elapsed_seconds)])
+    %disp([min(TT.elapsed_seconds)-max(TT.elapsed_seconds)])
     if nargout>0
         out=TT;
+        return
     end
     assignin('base','TT',TT)
     assignin('base','T',T)
